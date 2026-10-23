@@ -1,0 +1,29 @@
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Apple Inc.//iCloud Web Address Book 2310B48//EN
+N:Hopper;Grace;Brewster;;
+FN:Grace Brewster Hopper
+ORG:US Navy;Research
+TITLE:Rear Admiral
+item1.EMAIL;type=INTERNET;type=pref:grace@example.com
+item1.X-ABLabel:_$!<Work>!$_
+item2.EMAIL;type=INTERNET:grace.home@example.com
+item2.X-ABLabel:_$!<Home>!$_
+TEL;type=CELL;type=VOICE;type=pref:(202) 555-0102
+TEL;type=WORK;type=VOICE:+1 (202) 555-0199
+item3.URL;type=pref:https://example.com/grace
+item3.X-ABLabel:_$!<HomePage>!$_
+ADR;type=HOME;type=pref:;;1 Navy Way;Arlington;VA;22201;USA
+NOTE:Coined "debugging"\, so they say.\nSecond paragraph.
+BDAY:1906-12-09
+PHOTO;ENCODING=b;TYPE=JPEG:/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0a
+ HBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIy
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Apple Inc.//iCloud Web Address Book 2310B48//EN
+N:;;;;
+FN:Acme Plumbing
+ORG:Acme Plumbing;
+TEL;type=MAIN;type=pref:+1 202 555 0150
+END:VCARD

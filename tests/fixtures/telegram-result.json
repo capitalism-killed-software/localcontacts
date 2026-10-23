@@ -1,0 +1,10 @@
+{
+ "about": "Here is all the data you requested.",
+ "contacts": {
+  "about": "Contacts you have added to your Telegram address book.",
+  "list": [
+   {"first_name": "Ada", "last_name": "Lovelace", "phone_number": "+1 202 555 0101", "date": "2024-01-15T10:00:00", "date_unixtime": "1705312800"},
+   {"first_name": "Mary", "last_name": "Shelley", "phone_number": "+1 202 555 0104", "date": "2024-02-01T10:00:00", "date_unixtime": "1706781600"}
+  ]
+ }
+}

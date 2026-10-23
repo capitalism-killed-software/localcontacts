@@ -56,6 +56,11 @@ function open(): DatabaseSync {
   if (!names.has('industry')) {
     db.exec(`ALTER TABLE contacts ADD COLUMN industry TEXT`);
   }
+  // Extra values the importer keeps so nothing from an export is lost:
+  // newline-separated lists of further emails, phones and links.
+  for (const col of ['alt_emails', 'alt_phones', 'urls']) {
+    if (!names.has(col)) db.exec(`ALTER TABLE contacts ADD COLUMN ${col} TEXT`);
+  }
   return db;
 }
 

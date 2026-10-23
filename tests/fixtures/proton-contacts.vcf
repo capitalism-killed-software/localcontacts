@@ -1,0 +1,22 @@
+BEGIN:VCARD
+VERSION:4.0
+PRODID:-//ProtonMail//ProtonMail vCard 1.0.0//EN
+FN;PREF=1:Ada Lovelace
+N:Lovelace;Ada;;;
+UID:proton-web-3f1c2a7e-0000-4000-8000-000000000001
+ITEM2.EMAIL;PREF=2:ada.home@example.com
+ITEM1.EMAIL;PREF=1:ada@example.com
+TEL;TYPE=cell;PREF=1:+12025550101
+TEL;VALUE=uri;TYPE=work:tel:+12025550199
+ORG:Analytical Engines Ltd
+TITLE:Head of Engineering
+NOTE:Met at the Babbage meetup.
+END:VCARD
+BEGIN:VCARD
+VERSION:4.0
+PRODID:-//ProtonMail//ProtonMail vCard 1.0.0//EN
+FN;PREF=1:Grace Hopper
+N:Hopper;Grace;;;
+UID:proton-web-3f1c2a7e-0000-4000-8000-000000000002
+ITEM1.EMAIL;PREF=1:grace@example.com
+END:VCARD

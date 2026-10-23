@@ -1,0 +1,3 @@
+First Name,Middle Name,Last Name,Phonetic First Name,Phonetic Middle Name,Phonetic Last Name,Name Prefix,Name Suffix,Nickname,File As,Organization Name,Organization Title,Organization Department,Birthday,Notes,Photo,Labels,E-mail 1 - Label,E-mail 1 - Value,E-mail 2 - Label,E-mail 2 - Value,Phone 1 - Label,Phone 1 - Value,Phone 2 - Label,Phone 2 - Value
+Ada,,Lovelace,,,,,,,,Analytical Engines Ltd,Head of Engineering,,,Met at the Babbage meetup.,,* myContacts,Work,ada@example.com,Home,ada.home@example.com,Mobile,+1 202-555-0101,Work,+1 202-555-0199
+Grace,,Hopper,,,,,,,,US Navy,Rear Admiral,,,,,* myContacts,,grace@example.com,,,Mobile,(202) 555-0102,,
