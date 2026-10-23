@@ -2,12 +2,15 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
+import { FIELD_LABELS, MAPPABLE, type FieldMap, type MappableField } from '@/lib/import/fields';
 import type { ImportReport } from '@/lib/import/run';
 
 // The import sheet on the right page: choose or drop export files, see what
 // the importer makes of them (a dry run, nothing written), then import.
 
 type Phase = 'idle' | 'checking' | 'checked' | 'importing' | 'done' | 'error';
+
+const keyOf = (f: File) => `${f.name}:${f.size}`;
 
 const kb = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
 
@@ -20,12 +23,19 @@ export default function ImportPanel({ doneHref }: { doneHref: string }) {
   const [report, setReport] = useState<ImportReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  // Column choices for generic CSVs, by file; and which files show them.
+  const [maps, setMaps] = useState<Record<string, FieldMap>>({});
+  const [mapOpen, setMapOpen] = useState<Record<string, boolean>>({});
 
-  async function send(list: File[], apply: boolean) {
+  async function send(list: File[], apply: boolean, mapsNow: Record<string, FieldMap> = maps) {
     setError(null);
     setPhase(apply ? 'importing' : 'checking');
     const form = new FormData();
-    for (const f of list) form.append('file', f, f.name);
+    list.forEach((f, i) => {
+      form.append('file', f, f.name);
+      const m = mapsNow[keyOf(f)];
+      if (m && Object.keys(m).length) form.append(`map:${i}`, JSON.stringify(m));
+    });
     if (source.trim()) form.append('source', source.trim());
     if (apply) form.append('apply', '1');
     try {
@@ -33,6 +43,15 @@ export default function ImportPanel({ doneHref }: { doneHref: string }) {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? `Import failed (${res.status})`);
       setReport(body as ImportReport);
+      // Open the column choices for any CSV whose name column couldn't be guessed.
+      const r = body as ImportReport;
+      setMapOpen((open) => {
+        const next = { ...open };
+        r.files.forEach((fr, i) => {
+          if (!fr.ok && fr.headers?.length && list[i]) next[keyOf(list[i])] = true;
+        });
+        return next;
+      });
       if (apply && (body as ImportReport).applied) {
         setPhase('done');
         router.refresh();
@@ -60,6 +79,16 @@ export default function ImportPanel({ doneHref }: { doneHref: string }) {
     else setPhase('idle');
   }
 
+  function setColumn(f: File, field: MappableField, column: string) {
+    const k = keyOf(f);
+    const m = { ...(maps[k] ?? {}) };
+    if (column) m[field] = column;
+    else delete m[field];
+    const next = { ...maps, [k]: m };
+    setMaps(next);
+    void send(files, false, next);
+  }
+
   const st = report?.stats;
   const busy = phase === 'checking' || phase === 'importing';
   const canImport = phase === 'checked' && report?.ok && st && (st.inserted > 0 || st.mergedIntoExisting > 0);
@@ -70,7 +99,7 @@ export default function ImportPanel({ doneHref }: { doneHref: string }) {
       <p className="card-company">
         vCard (Apple, Google, Proton, Android, Outlook), Google or Outlook CSV, LinkedIn Connections.csv, Telegram
         result.json, or any CSV with a header row.{' '}
-        <a href="https://github.com/capitalism-killed-software/localcontacts/blob/main/docs/exporting-your-contacts.md" target="_blank" rel="noreferrer">
+        <a href="/help/export" target="_blank" rel="noreferrer">
           How to export them
         </a>
       </p>
@@ -130,12 +159,44 @@ export default function ImportPanel({ doneHref }: { doneHref: string }) {
                 </span>
                 <span className="import-name">{f.name}</span>
                 <span className="import-meta">
-                  {r?.ok ? `${r.label}, ${r.count} contacts, tagged “${r.source}”` : r?.error ?? kb(f.size)}
+                  {r?.ok
+                    ? `${r.label}, ${r.count} contacts, tagged “${r.source}”`
+                    : r?.headers?.length && /name column/.test(r.error ?? '')
+                      ? 'No name column found. Choose which column holds the name, below.'
+                      : r?.error ?? kb(f.size)}
                 </span>
                 {phase !== 'done' && !busy && (
                   <button type="button" className="photo-remove" onClick={() => remove(i)} aria-label={`Remove ${f.name}`}>
                     remove
                   </button>
+                )}
+                {r?.headers && r.headers.length > 0 && phase !== 'done' && !mapOpen[keyOf(f)] && (
+                  <button type="button" className="photo-remove" onClick={() => setMapOpen({ ...mapOpen, [keyOf(f)]: true })}>
+                    columns
+                  </button>
+                )}
+                {r?.headers && r.headers.length > 0 && phase !== 'done' && mapOpen[keyOf(f)] && (
+                  <div className="import-map">
+                    <p className="drop-sub">Which column holds what? Leave a field on “guess” to let the importer decide.</p>
+                    {MAPPABLE.map((field) => (
+                      <label key={field} className="import-map-row">
+                        <span className="field-label">{FIELD_LABELS[field]}</span>
+                        <select
+                          className="sort-select"
+                          value={maps[keyOf(f)]?.[field] ?? ''}
+                          disabled={busy}
+                          onChange={(e) => setColumn(f, field, e.target.value)}
+                        >
+                          <option value="">guess</option>
+                          {r.headers!.map((h) => (
+                            <option key={h} value={h}>
+                              {h}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ))}
+                  </div>
                 )}
                 {r?.ok && r.warnings.length > 0 && (
                   <ul className="import-notes">
@@ -157,7 +218,7 @@ export default function ImportPanel({ doneHref }: { doneHref: string }) {
         </p>
       )}
       {report && !report.ok && phase !== 'checking' && (
-        <p className="import-status is-bad">Nothing can be imported until every file is readable. Remove the ones marked ✗.</p>
+        <p className="import-status is-bad">Nothing can be imported until every file is readable. Choose columns for the ones marked ✗, or remove them.</p>
       )}
 
       {st && report?.ok && (
@@ -201,6 +262,8 @@ export default function ImportPanel({ doneHref }: { doneHref: string }) {
               className="btn"
               onClick={() => {
                 setFiles([]);
+                setMaps({});
+                setMapOpen({});
                 setReport(null);
                 setPhase('idle');
               }}

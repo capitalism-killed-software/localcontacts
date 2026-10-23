@@ -1,3 +1,4 @@
+import { cleanFieldMap } from '@/lib/import/fields';
 import { runImport, type ImportFile } from '@/lib/import/run';
 
 export const dynamic = 'force-dynamic';
@@ -41,8 +42,18 @@ export async function POST(req: Request) {
     return fail(400, 'A source tag may only use letters, digits, dots, dashes and underscores.');
   }
   const files: ImportFile[] = [];
-  for (const f of uploads) {
-    files.push({ name: f.name || 'upload', bytes: new Uint8Array(await f.arrayBuffer()), source: rawSource || null });
+  for (const [i, f] of uploads.entries()) {
+    // Column choices for a generic CSV, as JSON: { "full_name": "Person", ... }
+    let map = null;
+    const rawMap = form.get(`map:${i}`);
+    if (typeof rawMap === 'string' && rawMap) {
+      try {
+        map = cleanFieldMap(JSON.parse(rawMap));
+      } catch {
+        return fail(400, `The column choices for ${f.name} could not be read.`);
+      }
+    }
+    files.push({ name: f.name || 'upload', bytes: new Uint8Array(await f.arrayBuffer()), source: rawSource || null, map });
   }
   const report = runImport(files, { apply: form.get('apply') === '1' });
   return Response.json(report, { headers: { 'Cache-Control': 'no-store' } });

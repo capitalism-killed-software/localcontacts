@@ -5,12 +5,8 @@ import { headersOf, readCsv, type Row } from './csv';
 // Any CSV with a header row: a CRM export, a spreadsheet, another contacts app.
 // Columns are guessed from common header names; --map overrides per field.
 
-export const MAPPABLE = [
-  'full_name', 'first_name', 'last_name', 'email', 'phone',
-  'company', 'title', 'notes', 'url', 'connected_on',
-] as const;
-export type MappableField = (typeof MAPPABLE)[number];
-export type FieldMap = Partial<Record<MappableField, string>>;
+import { MAPPABLE, type FieldMap, type MappableField } from '../fields';
+export { MAPPABLE, type FieldMap, type MappableField };
 
 const MULTI: ReadonlySet<MappableField> = new Set(['email', 'phone', 'url']);
 
@@ -76,7 +72,7 @@ export function parseGenericCsv(text: string, map: FieldMap = {}): ParseResult {
   if (cols.full_name.length === 0 && cols.first_name.length === 0 && cols.last_name.length === 0) {
     throw new Error(
       `could not find a name column. Headers: ${headers.join(', ')}. ` +
-        'Tell the importer with --map=full_name=<Column> (or first_name=…,last_name=…).'
+        'Choose the name column (on the import page) or pass --map=full_name=<Column> (or first_name=…,last_name=…).'
     );
   }
   const country = defaultCountry();

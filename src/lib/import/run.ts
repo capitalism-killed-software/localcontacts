@@ -1,11 +1,11 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { dbPath, getDb } from '../db';
-import { decodeFileBytes, detect, unknownHint } from './detect';
+import { csvHeader, decodeFileBytes, detect, unknownHint } from './detect';
 import { defaultSource, parseText } from './index';
 import { planMerge, recToColumns, type Batch, type ExistingRow, type MergeStats } from './merge';
 import { defaultCountry } from './normalize';
-import type { FieldMap } from './parsers/generic-csv';
+import type { FieldMap } from './fields';
 import { FORMAT_LABELS, type Format } from './types';
 
 // One import run, used by both the command line and the import page: read
@@ -23,6 +23,7 @@ export type FileReport = {
   source?: string;
   warnings: string[];
   error?: string;
+  headers?: string[]; // a generic CSV's columns, so the page can offer mapping
 };
 
 export type ImportReport = {
@@ -49,6 +50,7 @@ function readFiles(files: ImportFile[]): { reports: FileReport[]; batches: Batch
       reports.push({ name: f.name, ok: false, warnings: [], error: unknownHint(text, f.name) });
       continue;
     }
+    const headers = format === 'generic-csv' ? csvHeader(text).filter(Boolean) : undefined;
     try {
       const res = parseText(text, format, { map: f.map ?? undefined });
       const source = f.source || defaultSource(format, res.sourceHint);
@@ -61,9 +63,10 @@ function readFiles(files: ImportFile[]): { reports: FileReport[]; batches: Batch
         count: res.contacts.length,
         source,
         warnings: res.warnings,
+        headers,
       });
     } catch (err) {
-      reports.push({ name: f.name, ok: false, format, warnings: [], error: (err as Error).message });
+      reports.push({ name: f.name, ok: false, format, warnings: [], error: (err as Error).message, headers });
     }
   }
   return { reports, batches };

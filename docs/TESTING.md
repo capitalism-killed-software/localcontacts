@@ -40,7 +40,8 @@ If no window appears, open <http://localhost:3000> in your browser instead and n
 In the terminal (stop the app first with Ctrl-C, or use a second terminal):
 `npm run import -- --apply seed/sample-contacts.csv`, then start the app again.
 
-- [ ] About 16 people appear, grouped under letters, surnames in bold.
+- [ ] 15 people appear (the sample has one deliberate duplicate, which is merged), grouped
+      under letters, surnames in bold.
 - [ ] Clicking a name shows their card on the right page.
 - [ ] Up and Down arrow keys move between cards. Home and End jump to the first and last.
 - [ ] The search box narrows the list as you type, and the open card stays open.

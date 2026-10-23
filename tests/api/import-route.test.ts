@@ -68,6 +68,23 @@ describe('POST /api/import', () => {
     expect(countContacts()).toBe(0);
   });
 
+  it('reports the columns of a CSV and takes column choices', async () => {
+    const first = (await (await upload(['unguessable.csv'])).json()) as ImportReport;
+    expect(first.ok).toBe(false);
+    expect(first.files[0].headers).toEqual(['Who', 'Mail', 'Cell', 'Org']);
+    expect(first.files[0].error).toMatch(/could not find a name column/);
+
+    const mapped = (await (
+      await upload(['unguessable.csv'], { 'map:0': JSON.stringify({ full_name: 'Who', email: 'Mail', company: 'Org', bogus: 'x' }) })
+    ).json()) as ImportReport;
+    expect(mapped.ok).toBe(true);
+    expect(mapped.files[0].count).toBe(2);
+    await upload(['unguessable.csv'], { 'map:0': JSON.stringify({ full_name: 'Who', email: 'Mail', company: 'Org' }), apply: '1' });
+    expect(listContacts().find((c) => c.full_name === 'Otto Unguessed')).toMatchObject({ email: 'otto@example.com', company: 'Mapping Ltd' });
+
+    expect((await upload(['unguessable.csv'], { 'map:0': '{not json' })).status).toBe(400);
+  });
+
   it('rejects other websites, empty uploads and bad tags', async () => {
     expect((await upload(['google-contacts.vcf'], { apply: '1' }, { origin: 'https://evil.example' })).status).toBe(403);
     expect((await upload(['google-contacts.vcf'], {}, { origin: '' , 'sec-fetch-site': 'cross-site' })).status).toBe(403);

@@ -7,3 +7,4 @@ imports
 *.md
 !README.md
 tests
+!docs/exporting-your-contacts.md
