@@ -1,15 +1,8 @@
 'use client';
 import { useState } from 'react';
 
-export default function CopyButton({
-  value,
-  label,
-  className = '',
-}: {
-  value: string;
-  label?: string;
-  className?: string;
-}) {
+// Copies a value to the clipboard. Shown on hover next to emails and phones.
+export default function CopyButton({ value, label }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -18,18 +11,13 @@ export default function CopyButton({
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
     } catch {
-      // ignore
+      // clipboard unavailable: nothing to do
     }
   }
 
   return (
-    <button
-      type="button"
-      onClick={copy}
-      title={`Copy ${label ?? 'value'}`}
-      className={`inline-flex items-center gap-1 rounded border border-neutral-200 bg-white px-2 py-0.5 text-xs text-neutral-600 hover:border-neutral-400 hover:text-neutral-900 ${className}`}
-    >
-      {copied ? '✓ copied' : 'copy'}
+    <button type="button" onClick={copy} title={`Copy ${label ?? 'value'}`} className="copy-btn">
+      {copied ? 'copied' : 'copy'}
     </button>
   );
 }

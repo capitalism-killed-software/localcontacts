@@ -2,14 +2,225 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Structural layout only in this commit; the Address Book skin follows. */
 :root {
   color-scheme: light;
 }
-
-html, body {
+html,
+body {
   height: 100%;
 }
-
 body {
-  @apply bg-neutral-50 text-neutral-900 antialiased;
+  @apply bg-neutral-800 text-neutral-900 antialiased;
+  font-size: 13px;
+}
+
+@layer components {
+  .desk {
+    @apply min-h-screen flex flex-col items-center justify-center gap-3 p-6;
+  }
+  .book {
+    position: relative;
+    width: min(1180px, 100vw - 48px);
+    height: calc(100vh - 72px);
+    min-height: 520px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    @apply bg-amber-900 rounded-md p-2;
+  }
+  .page {
+    display: grid;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+    @apply bg-white;
+  }
+  .page-left {
+    grid-template-columns: 130px 1fr;
+  }
+  .book[data-groups='hidden'] .page-left {
+    grid-template-columns: 1fr;
+  }
+  .book[data-groups='hidden'] .groups-pane {
+    display: none;
+  }
+  .page-right {
+    grid-template-columns: 1fr;
+  }
+  .groups-pane,
+  .names-pane,
+  .card-pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .groups-scroll,
+  .names-list,
+  .card-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .groups-pane {
+    @apply bg-neutral-100 border-r border-neutral-300 pt-8;
+  }
+  .group {
+    @apply flex items-center gap-2 px-3 h-5 whitespace-nowrap;
+  }
+  .group.is-selected {
+    @apply font-bold text-blue-700;
+  }
+  .group-count {
+    @apply ml-auto text-neutral-400 text-xs;
+  }
+  .group-header {
+    @apply mt-6 mb-1 px-2 text-[11px] font-bold uppercase text-neutral-400;
+  }
+  .names-top {
+    @apply p-3 pt-8;
+  }
+  .search {
+    @apply flex items-center gap-1 rounded-full border border-neutral-400 bg-white px-2 h-5;
+  }
+  .search input {
+    @apply flex-1 bg-transparent outline-none;
+  }
+  .names-list {
+    @apply mx-3 border border-neutral-300;
+  }
+  .name-section {
+    @apply sticky top-0 bg-neutral-200 px-1.5 font-bold text-neutral-600;
+  }
+  .name-row {
+    @apply block px-1.5 h-[25px] leading-[25px] truncate border-b border-dotted border-neutral-300;
+  }
+  .name-row.is-selected {
+    @apply bg-blue-600 text-white;
+  }
+  .names-footer {
+    @apply flex items-center gap-2 p-3;
+  }
+  .names-count {
+    @apply ml-auto text-neutral-500;
+  }
+  .groups-select {
+    display: none;
+  }
+  .btn {
+    @apply inline-flex items-center h-[22px] px-2 rounded border border-neutral-400 bg-white text-neutral-700;
+  }
+  .btn-done {
+    @apply text-blue-700;
+  }
+  .btn-delete {
+    @apply text-red-700 border-transparent bg-transparent;
+  }
+  .card-pane {
+    @apply px-8 pt-8;
+  }
+  .card-footer {
+    @apply flex items-center gap-2 py-3;
+  }
+  .card-head {
+    @apply flex items-start gap-3;
+  }
+  .photo {
+    @apply block w-12 h-12 border border-neutral-400 bg-white shrink-0;
+  }
+  .photo svg {
+    fill: #f2f2f2;
+  }
+  .card-name {
+    @apply text-base font-bold;
+  }
+  .card-company {
+    @apply text-xs text-neutral-500;
+  }
+  .card-divider {
+    @apply my-4 border-t border-dotted border-neutral-400;
+  }
+  .field-group {
+    @apply mb-3;
+  }
+  .field-row,
+  .edit-row {
+    @apply flex items-baseline gap-2 min-h-[17px] leading-[17px];
+  }
+  .field-label,
+  .edit-label {
+    @apply w-24 shrink-0 text-right text-neutral-400;
+  }
+  .field-value a {
+    @apply text-blue-700 underline;
+  }
+  .copy-btn {
+    @apply ml-2 text-xs text-neutral-400;
+  }
+  .quiet-link {
+    @apply text-neutral-400;
+  }
+  .card-note {
+    white-space: pre-wrap;
+  }
+  .boxed-input {
+    @apply block border border-neutral-400 px-1 mb-1;
+  }
+  .edit-input {
+    @apply flex-1 bg-transparent outline-none border-b border-neutral-200;
+  }
+  .round-btn {
+    @apply w-3 h-3 rounded-full shrink-0 self-center;
+  }
+  .round-btn.minus {
+    @apply bg-red-600;
+  }
+  .round-btn.plus {
+    @apply bg-green-600;
+  }
+  .edit-add-text {
+    @apply text-neutral-400;
+  }
+  .back-link {
+    display: none;
+  }
+  .ribbon {
+    @apply absolute top-0 right-7 w-10 h-7 bg-red-700 text-white;
+  }
+  .ribbon svg {
+    fill: rgba(255, 255, 255, 0.7);
+    @apply mx-auto mt-1;
+  }
+  .spine,
+  .page-edge,
+  .gutter {
+    display: none;
+  }
+  .desk-caption {
+    @apply text-xs text-neutral-400;
+  }
+  @media (max-width: 899px) {
+    .book {
+      grid-template-columns: 1fr;
+      width: calc(100vw - 16px);
+      height: calc(100vh - 40px);
+    }
+    .book[data-view='list'] .page-right,
+    .book[data-view='card'] .page-left {
+      display: none;
+    }
+    .page-left {
+      grid-template-columns: 1fr;
+    }
+    .groups-pane,
+    .ribbon {
+      display: none;
+    }
+    .groups-select {
+      display: block;
+      @apply mb-2 w-full;
+    }
+    .back-link {
+      @apply block text-blue-700 pb-2;
+    }
+  }
 }

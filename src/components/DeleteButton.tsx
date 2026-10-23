@@ -1,9 +1,10 @@
 'use client';
 
+// Its own form, so it must sit beside the edit form rather than inside it.
 export default function DeleteButton({
   action,
   confirmText,
-  label = 'Delete',
+  label = 'Delete Card…',
 }: {
   action: (fd: FormData) => void | Promise<void>;
   confirmText: string;
@@ -12,14 +13,12 @@ export default function DeleteButton({
   return (
     <form
       action={action}
+      className="delete-form"
       onSubmit={(e) => {
         if (!confirm(confirmText)) e.preventDefault();
       }}
     >
-      <button
-        type="submit"
-        className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm text-red-700 hover:border-red-500"
-      >
+      <button type="submit" className="btn btn-delete">
         {label}
       </button>
     </form>
