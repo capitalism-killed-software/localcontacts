@@ -53,7 +53,8 @@ function mapSort(v: ViewSort, dir: 'desc' | null): [SortKey, SortDir] {
 type Params = Record<string, string | string[] | undefined>;
 const str = (v: string | string[] | undefined): string => (Array.isArray(v) ? v[0] ?? '' : v ?? '').trim();
 
-export default function HomePage({ searchParams }: { searchParams: Params }) {
+export default async function HomePage(props: { searchParams: Promise<Params> }) {
+  const searchParams = await props.searchParams;
   const q = str(searchParams.q);
   const rawFilter = str(searchParams.filter) as ContactFilter;
   const filter: ContactFilter = FILTER_KEYS.has(rawFilter) ? rawFilter : 'all';

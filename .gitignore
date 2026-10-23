@@ -25,3 +25,5 @@ imports/*
 /*.csv
 /result.json
 LOCAL_NOTES.md
+
+next-env.d.ts
