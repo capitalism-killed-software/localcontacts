@@ -15,6 +15,7 @@ right, the red ribbon that shows and hides the groups. It runs in any browser on
 - **[Why this exists](docs/ABOUT.md)**: what it is for, what it refuses to do with your data.
 - **[Deployment guide](docs/DEPLOY.md)**: your laptop, a home server, Docker, reaching it safely from your phone.
 - **[Contributing](CONTRIBUTING.md)**: setup, ground rules, adding an import format.
+- **[Testing](docs/TESTING.md)**: a checklist for trying a release on macOS, Windows and Linux.
 - **[Roadmap](docs/ROADMAP.md)**: what is done, what is next.
 
 ## Supported exports
