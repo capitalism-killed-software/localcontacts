@@ -4,7 +4,7 @@ import type { Contact } from '@/lib/contacts';
 import { tagLabel } from '@/lib/groups';
 import { splitName } from '@/lib/names';
 import CopyButton from './CopyButton';
-import Silhouette from './Silhouette';
+import { CardPhoto } from './Silhouette';
 
 const lines = (v: string | null): string[] => (v ? v.split('\n').map((s) => s.trim()).filter(Boolean) : []);
 const withScheme = (u: string): string => (/^[a-z][a-z0-9+.-]*:/i.test(u) ? u : `https://${u}`);
@@ -66,7 +66,7 @@ export default function CardView({
   return (
     <div className="card">
       <header className="card-head">
-        <Silhouette />
+        <CardPhoto id={contact.id} photoType={contact.photo_type} version={contact.updated_at} />
         <div className="card-titles">
           <h1 className="card-name">
             {first}

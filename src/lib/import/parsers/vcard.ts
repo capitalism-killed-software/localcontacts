@@ -1,10 +1,12 @@
 import type { IncomingContact, ParseResult } from '../types';
 import { stripBom } from '../detect';
 import { clean, dedupeEmails, dedupePhones, dedupeStrings, defaultCountry, NO_NAME } from '../normalize';
+import { photoFromBase64, photoFromDataUri, type Photo, type PhotoResult } from '../../photo';
 
 // vCard 2.1, 3.0 and 4.0 as produced by Apple (iCloud, macOS, iPhone), Google,
-// Proton, Android, Outlook and Thunderbird. Keeps every email, phone and URL;
-// ignores photos, addresses and birthdays.
+// Proton, Android, Outlook and Thunderbird. Keeps every email, phone and URL
+// and an embedded photo; ignores addresses, birthdays and photos that are only
+// a link (fetching them would be a network call).
 
 type Params = Map<string, string[]>;
 type Prop = { name: string; params: Params; value: string };
@@ -18,10 +20,23 @@ type Card = {
   title: string | null;
   notes: string[];
   urls: string[];
+  photo: Photo | null;
 };
 
 const ENCODINGS = new Set(['QUOTED-PRINTABLE', 'BASE64', 'B', '8BIT', '7BIT']);
-const IGNORED = new Set(['ADR', 'PHOTO', 'BDAY', 'LOGO', 'SOUND', 'KEY', 'GEO', 'ANNIVERSARY']);
+const IGNORED = new Set(['ADR', 'BDAY', 'LOGO', 'SOUND', 'KEY', 'GEO', 'ANNIVERSARY']);
+
+type PhotoSkip = 'link' | 'not-image' | 'too-large' | 'empty';
+
+// PHOTO in its three shapes: 3.0 ENCODING=b, 2.1 ENCODING=BASE64, 4.0 data: URI.
+function readPhoto(p: Prop): { photo: Photo } | { skip: PhotoSkip } {
+  const enc = p.params.get('ENCODING')?.[0];
+  let r: PhotoResult;
+  if (enc === 'B' || enc === 'BASE64') r = photoFromBase64(p.value);
+  else if (/^data:/i.test(p.value.trim())) r = photoFromDataUri(p.value);
+  else return { skip: 'link' };
+  return 'photo' in r ? { photo: r.photo } : { skip: r.error };
+}
 
 const isQpSoftBreak = (l: string): boolean => l.endsWith('=') && /^[^:]*QUOTED-PRINTABLE[^:]*:/i.test(l);
 
@@ -174,7 +189,7 @@ function hintFromProdId(v: string): string | null {
   return null;
 }
 
-const newCard = (): Card => ({ fn: null, n: null, emails: [], tels: [], org: null, title: null, notes: [], urls: [] });
+const newCard = (): Card => ({ fn: null, n: null, emails: [], tels: [], org: null, title: null, notes: [], urls: [], photo: null });
 
 const byPref = (a: Ranked, b: Ranked) => a.pref - b.pref || a.i - b.i;
 
@@ -198,6 +213,7 @@ function toContact(card: Card): IncomingContact | null {
     notes: card.notes.length ? card.notes.join('\n') : null,
     urls: dedupeStrings(card.urls),
     connected_on: null,
+    photo: card.photo,
   };
 }
 
@@ -206,6 +222,8 @@ export function parseVcard(text: string): ParseResult {
   const ignored = new Map<string, number>();
   let sourceHint: string | null = null;
   let skipped = 0;
+  let photos = 0;
+  const photoSkips = new Map<PhotoSkip, number>();
   let card: Card | null = null;
 
   for (const line of unfold(text)) {
@@ -228,6 +246,15 @@ export function parseVcard(text: string): ParseResult {
     if (!p) continue;
     if (IGNORED.has(p.name)) {
       ignored.set(p.name, (ignored.get(p.name) ?? 0) + 1);
+      continue;
+    }
+    if (p.name === 'PHOTO') {
+      if (card.photo) continue;
+      const r = readPhoto(p);
+      if ('photo' in r) {
+        card.photo = r.photo;
+        photos++;
+      } else photoSkips.set(r.skip, (photoSkips.get(r.skip) ?? 0) + 1);
       continue;
     }
     const v = decodeValue(p);
@@ -273,7 +300,15 @@ export function parseVcard(text: string): ParseResult {
   if (skipped) warnings.push(`${skipped} empty card(s) skipped (no name, email or phone)`);
   if (ignored.size) {
     const parts = [...ignored].map(([k, n]) => `${k} ×${n}`).join(', ');
-    warnings.push(`not imported: ${parts} (addresses, photos and birthdays are not kept)`);
+    warnings.push(`not imported: ${parts} (addresses and birthdays are not kept)`);
   }
+  if (photos) warnings.push(`${photos} photo(s) kept`);
+  const why: Record<PhotoSkip, string> = {
+    link: 'only a link (not fetched)',
+    'not-image': 'not a JPEG, PNG, GIF or WebP image',
+    'too-large': 'larger than 2 MB',
+    empty: 'empty',
+  };
+  for (const [k, n] of photoSkips) warnings.push(`${n} photo(s) skipped: ${why[k]}`);
   return { contacts, warnings, sourceHint };
 }

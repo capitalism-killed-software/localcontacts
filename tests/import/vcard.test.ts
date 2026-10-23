@@ -19,7 +19,7 @@ describe('vCard parser', () => {
     expect(contacts[1].emails).toEqual(['grace@example.com']); // item1. group prefix stripped
   });
 
-  it('reads an Apple iCloud export: groups, ORG department, escaped note, URL, skips photo and address', () => {
+  it('reads an Apple iCloud export: groups, ORG department, escaped note, URL, keeps the photo, skips address', () => {
     const { contacts, warnings, sourceHint } = vcf('apple-contacts.vcf');
     expect(sourceHint).toBe('apple');
     const grace = contacts[0];
@@ -29,7 +29,9 @@ describe('vCard parser', () => {
     expect(grace.org).toBe('US Navy');
     expect(grace.urls).toEqual(['https://example.com/grace']);
     expect(grace.notes).toBe('Coined "debugging", so they say.\nSecond paragraph.');
-    expect(warnings.join(' ')).toMatch(/ADR ×1, BDAY ×1, PHOTO ×1/);
+    expect(warnings.join(' ')).toMatch(/ADR ×1, BDAY ×1/);
+    expect(warnings).toContain('1 photo(s) kept');
+    expect(grace.photo?.type).toBe('image/jpeg');
     // A company card with an empty N falls back to FN, then ORG.
     expect(contacts[1].name).toBe('Acme Plumbing');
     expect(contacts[1].phones).toEqual(['+1 202 555 0150']);

@@ -3,7 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 // Path override (mainly for tests). `:memory:` selects an in-memory DB.
-function dbPath(): string {
+export function dbPath(): string {
   const override = process.env.CONTACTS_DB_PATH;
   if (override) return override === ':memory:' ? ':memory:' : resolve(override);
   return resolve(process.cwd(), 'data', 'contacts.db');
@@ -61,6 +61,10 @@ function open(): DatabaseSync {
   for (const col of ['alt_emails', 'alt_phones', 'urls']) {
     if (!names.has(col)) db.exec(`ALTER TABLE contacts ADD COLUMN ${col} TEXT`);
   }
+  // The card photo: the image bytes and their type. Only `photo_type` is read
+  // with the rest of a contact; the bytes are fetched on their own.
+  if (!names.has('photo')) db.exec(`ALTER TABLE contacts ADD COLUMN photo BLOB`);
+  if (!names.has('photo_type')) db.exec(`ALTER TABLE contacts ADD COLUMN photo_type TEXT`);
   return db;
 }
 

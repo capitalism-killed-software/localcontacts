@@ -1,6 +1,6 @@
 import type { Contact } from '@/lib/contacts';
 import MultiField from './MultiField';
-import Silhouette from './Silhouette';
+import PhotoPicker from './PhotoPicker';
 
 const lines = (v: string | null | undefined): string[] => (v ? v.split('\n').map((s) => s.trim()).filter(Boolean) : []);
 
@@ -23,7 +23,9 @@ export default function CardEdit({
   return (
     <form id={CARD_FORM_ID} action={action} className="card card-edit">
       <header className="card-head">
-        <Silhouette className="photo-editing" />
+        <PhotoPicker
+          current={contact?.photo_type ? `/api/photo/${contact.id}?v=${encodeURIComponent(contact.updated_at)}` : null}
+        />
         <div className="card-titles">
           <input
             name="full_name"

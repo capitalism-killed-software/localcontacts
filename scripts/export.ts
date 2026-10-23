@@ -11,7 +11,7 @@
  */
 import { existsSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { listContacts } from '../src/lib/contacts';
+import { getPhoto, listContacts } from '../src/lib/contacts';
 import { listArgs, parseBook } from '../src/lib/context';
 import { contactsToCsv } from '../src/lib/export/csv';
 import { contactsToVcf } from '../src/lib/export/vcard';
@@ -54,7 +54,10 @@ function main() {
   let rows = listContacts(p.q, p.filter, sort, dir, p.source, p.industry, { limit: null });
   if (p.viewSort === 'last') rows = sectionize(rows, 'last').flatMap((s) => s.items.map((i) => i.contact));
 
-  const text = format === 'vcard' ? contactsToVcf(rows) : contactsToCsv(rows, { bom: out !== null });
+  const text =
+    format === 'vcard'
+      ? contactsToVcf(rows, (c) => (c.photo_type ? getPhoto(c.id) : null))
+      : contactsToCsv(rows, { bom: out !== null });
   const label = format === 'vcard' ? 'vCard 3.0' : 'CSV';
   if (out) {
     if (existsSync(out) && !force) fail(`${out} exists; pass --force to overwrite it`);

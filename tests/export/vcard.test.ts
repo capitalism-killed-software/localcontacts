@@ -74,6 +74,7 @@ describe('contactToVcard', () => {
       notes: 'Path C:\\new\nsecond, line; here',
       urls: ['https://example.com/mary', 'https://example.com/blog'],
       connected_on: null,
+      photo: null,
     });
   });
 

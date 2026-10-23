@@ -40,7 +40,7 @@ function rows(db: string): Map<string, Row> {
   const d = new DatabaseSync(db);
   try {
     const all = d
-      .prepare('SELECT full_name, email, alt_emails, phone, alt_phones, urls, notes, company, title, connected_on FROM contacts')
+      .prepare('SELECT full_name, email, alt_emails, phone, alt_phones, urls, notes, company, title, connected_on, hex(photo) AS photo FROM contacts')
       .all() as Row[];
     return new Map(all.map((r) => [r.full_name as string, r]));
   } finally {
@@ -56,6 +56,7 @@ describe('export CLI', () => {
     expect(run('scripts/import.ts', db1, ['--apply', ...FIXTURES]).status).toBe(0);
     const original = rows(db1);
     expect(original.size).toBeGreaterThan(8);
+    expect([...original.values()].filter((r) => r.photo).length).toBeGreaterThan(0);
 
     for (const format of ['vcard', 'csv'] as const) {
       const file = join(dir, format === 'vcard' ? 'all.vcf' : 'all.csv');
@@ -72,6 +73,7 @@ describe('export CLI', () => {
         expect(b, `${format}: ${name}`).toBeDefined();
         for (const k of COMPARE) expect(b![k], `${format}: ${name} ${k}`).toBe(a[k]);
         if (format === 'csv') expect(b!.connected_on, `${name} connected_on`).toBe(a.connected_on);
+        if (format === 'vcard') expect(b!.photo, `${name} photo`).toBe(a.photo);
       }
       expect(back.size).toBe(original.size);
     }

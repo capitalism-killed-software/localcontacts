@@ -1,3 +1,4 @@
+import type { Photo } from '../photo';
 export type Format =
   | 'vcard'
   | 'google-csv'
@@ -28,6 +29,7 @@ export type IncomingContact = {
   notes: string | null;
   urls: string[];
   connected_on: string | null;
+  photo?: Photo | null;
 };
 
 export type ParseResult = {

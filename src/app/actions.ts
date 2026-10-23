@@ -1,7 +1,8 @@
 'use server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { createContact, updateContact, deleteContact, type ContactInput } from '@/lib/contacts';
+import { createContact, updateContact, deleteContact, setPhoto, type ContactInput } from '@/lib/contacts';
+import { photoFromBytes } from '@/lib/photo';
 import { bookHref, contextQs } from '@/lib/urls';
 
 // Emails, phones and links come in as repeated fields in DOM order; the
@@ -36,6 +37,21 @@ function readForm(fd: FormData): ContactInput {
   };
 }
 
+// The photo field: a new image replaces the stored one, "remove" clears it,
+// neither leaves it alone. Checked by its bytes, whatever the browser said.
+async function applyPhoto(id: number, fd: FormData) {
+  const file = fd.get('photo');
+  if (file instanceof File && file.size > 0) {
+    const r = photoFromBytes(new Uint8Array(await file.arrayBuffer()));
+    if ('error' in r) {
+      throw new Error(r.error === 'too-large' ? 'The photo is larger than 2 MB.' : 'The photo must be a JPEG, PNG, GIF or WebP image.');
+    }
+    setPhoto(id, r.photo);
+  } else if (fd.get('remove_photo') === '1') {
+    setPhoto(id, null);
+  }
+}
+
 // The bound query string round-trips through the client, so it is
 // re-sanitised before it becomes a redirect target.
 const safeQs = (qs: string) => contextQs(new URLSearchParams(qs));
@@ -44,6 +60,7 @@ export async function createContactAction(qs: string, fd: FormData) {
   const input = readForm(fd);
   if (!input.full_name) throw new Error('Name is required');
   const c = createContact(input);
+  await applyPhoto(c.id, fd);
   revalidatePath('/');
   redirect(bookHref(safeQs(qs), { id: c.id }));
 }
@@ -52,6 +69,7 @@ export async function updateContactAction(id: number, qs: string, fd: FormData) 
   const input = readForm(fd);
   if (!input.full_name) throw new Error('Name is required');
   updateContact(id, input);
+  await applyPhoto(id, fd);
   revalidatePath('/');
   redirect(bookHref(safeQs(qs), { id }));
 }

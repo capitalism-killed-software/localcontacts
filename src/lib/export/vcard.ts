@@ -1,6 +1,7 @@
 import type { Contact } from '../contacts';
 import { NO_NAME } from '../constants';
 import { splitName } from '../names';
+import { PHOTO_EXT, type Photo } from '../photo';
 
 // vCard 3.0 (RFC 2426) with RFC 6350 text escaping. Apple Contacts, Google
 // Contacts, Outlook, Proton, Android and Thunderbird all read it. CATEGORIES
@@ -59,7 +60,7 @@ function displayName(c: Contact): string {
   return c.company || c.email || c.phone || NO_NAME;
 }
 
-export function contactToVcard(c: Contact): string {
+export function contactToVcard(c: Contact, photo: Photo | null = null): string {
   const out: string[] = ['BEGIN:VCARD', 'VERSION:3.0', 'PRODID:-//localcontacts//EN'];
   const real = c.full_name && c.full_name !== NO_NAME && !c.full_name.includes('@');
   const { first, last, suffix } = real ? splitName(c.full_name) : { first: '', last: '', suffix: '' };
@@ -74,6 +75,7 @@ export function contactToVcard(c: Contact): string {
   phones.forEach((p, i) => out.push(`TEL${i === 0 ? ';TYPE=PREF' : ''}:${raw(p)}`));
   for (const u of lines(c.urls)) out.push(`URL:${raw(u)}`);
   if (c.notes) out.push(`NOTE:${escapeText(c.notes)}`);
+  if (photo) out.push(`PHOTO;ENCODING=b;TYPE=${PHOTO_EXT[photo.type]}:${photo.data.toString('base64')}`);
 
   const categories = [c.industry, ...(c.sources ? c.sources.split(',') : [])]
     .map((x) => (x ?? '').trim())
@@ -87,6 +89,6 @@ export function contactToVcard(c: Contact): string {
   return out.map(foldLine).join(CRLF) + CRLF;
 }
 
-export function contactsToVcf(list: Contact[]): string {
-  return list.map(contactToVcard).join('');
+export function contactsToVcf(list: Contact[], photoOf: (c: Contact) => Photo | null = () => null): string {
+  return list.map((c) => contactToVcard(c, photoOf(c))).join('');
 }

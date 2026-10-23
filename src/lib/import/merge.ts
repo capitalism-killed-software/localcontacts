@@ -1,5 +1,6 @@
 import type { CountryCode } from 'libphonenumber-js';
 import type { IncomingContact } from './types';
+import type { Photo } from '../photo';
 import { dedupeEmails, dedupePhones, dedupeStrings, emailKey, joinLines, nameKey, NO_NAME, phoneKey, splitLines } from './normalize';
 
 // The merge engine. Every existing row and every incoming contact becomes a
@@ -21,6 +22,7 @@ export type ExistingRow = {
   connected_on: string | null;
   last_contacted: string | null;
   sources: string | null;
+  has_photo?: number | null; // 1 when a photo is stored (the bytes are not loaded)
 };
 
 export type Rec = {
@@ -35,6 +37,8 @@ export type Rec = {
   connected_on: string | null;
   last_contacted: string | null;
   sources: string[];
+  hasPhoto: boolean;
+  photo: Photo | null; // a photo to write; null leaves the stored one alone
   dirty: boolean; // existing row that changed and needs an UPDATE
 };
 
@@ -49,6 +53,7 @@ export type MergeStats = {
   filledPhone: number;
   addedEmails: number;
   addedPhones: number;
+  addedPhotos: number;
   skippedUnmatched: number;
 };
 
@@ -65,6 +70,8 @@ export function rowToRec(r: ExistingRow): Rec {
     connected_on: r.connected_on,
     last_contacted: r.last_contacted,
     sources: r.sources ? r.sources.split(',').map((s) => s.trim()).filter(Boolean) : [],
+    hasPhoto: !!r.has_photo,
+    photo: null,
     dirty: false,
   };
 }
@@ -101,6 +108,8 @@ function fromIncoming(c: IncomingContact, source: string): Rec {
     connected_on: c.connected_on,
     last_contacted: null,
     sources: [source],
+    hasPhoto: !!c.photo,
+    photo: c.photo ?? null,
     dirty: false,
   };
 }
@@ -160,6 +169,14 @@ function mergeInto(t: Rec, inc: Rec, stats: MergeStats, country: CountryCode): b
     changed = true;
   }
 
+  // A photo fills an empty frame; a stored photo is never replaced.
+  if (!t.hasPhoto && inc.photo) {
+    t.photo = inc.photo;
+    t.hasPhoto = true;
+    stats.addedPhotos++;
+    changed = true;
+  }
+
   if (unionSources(t, inc)) changed = true;
   return changed;
 }
@@ -173,7 +190,7 @@ export function planMerge(
   const tagOnly = opts.tagOnly ?? false;
   const stats: MergeStats = {
     incoming: 0, inserted: 0, mergedIntoExisting: 0, mergedWithinImport: 0,
-    filledEmail: 0, filledPhone: 0, addedEmails: 0, addedPhones: 0, skippedUnmatched: 0,
+    filledEmail: 0, filledPhone: 0, addedEmails: 0, addedPhones: 0, addedPhotos: 0, skippedUnmatched: 0,
   };
   const byEmail = new Map<string, Rec>();
   const byPhone = new Map<string, Rec>();
@@ -246,6 +263,7 @@ export function planMerge(
         all.push(inc);
         index(inc);
         stats.inserted++;
+        if (inc.photo) stats.addedPhotos++;
       }
     }
   }

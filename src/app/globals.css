@@ -611,6 +611,53 @@ body {
     height: 48px;
     fill: #f2f2f2;
   }
+  .photo.has-image {
+    box-shadow: none;
+    background: #fff;
+  }
+  .photo img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  label.photo {
+    cursor: pointer;
+  }
+  label.photo:focus-within {
+    box-shadow: var(--focus-ring);
+  }
+  .photo-picker {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    width: 48px;
+  }
+  .photo-remove {
+    font-size: 10px;
+    color: var(--placeholder);
+    cursor: pointer;
+  }
+  .photo-remove:hover {
+    color: #c0262b;
+  }
+  .photo-error {
+    position: absolute;
+    margin-top: 70px;
+    width: 220px;
+    font-size: 11px;
+    color: #c0262b;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
   .photo-editing::after {
     content: 'edit';
     position: absolute;
@@ -697,6 +744,13 @@ body {
     text-decoration: none;
   }
   .quiet-link:hover {
+    text-decoration: underline;
+  }
+  .field-value a.quiet-link {
+    color: var(--placeholder);
+    text-decoration: none;
+  }
+  .field-value a.quiet-link:hover {
     text-decoration: underline;
   }
   .card-note {

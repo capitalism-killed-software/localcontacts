@@ -1,4 +1,5 @@
 import { getDb } from './db';
+import type { Photo, PhotoType } from './photo';
 
 export type Contact = {
   id: number;
@@ -15,9 +16,14 @@ export type Contact = {
   last_contacted: string | null;
   sources: string | null;
   industry: string | null;
+  photo_type: string | null; // set when the card has a photo; fetch it with getPhoto
   created_at: string;
   updated_at: string;
 };
+
+// Every column except the photo bytes, which are loaded only when shown.
+const COLUMNS = `id, full_name, title, company, email, phone, alt_emails, alt_phones, urls, notes,
+  connected_on, last_contacted, sources, industry, photo_type, created_at, updated_at`;
 
 // What the forms edit. The three newline-separated lists are written only
 // when the key is present: an absent key leaves the stored value alone, null
@@ -154,7 +160,7 @@ export function listContacts(
   const cap = opts.limit === undefined ? (q.length > 0 ? 500 : null) : opts.limit;
   const limit = cap !== null && Number.isFinite(cap) && cap > 0 ? `LIMIT ${Math.floor(cap)}` : '';
   return db
-    .prepare(`SELECT * FROM contacts ${where} ${order} ${limit}`)
+    .prepare(`SELECT ${COLUMNS} FROM contacts ${where} ${order} ${limit}`)
     .all(...params) as unknown as Contact[];
 }
 
@@ -247,7 +253,7 @@ export function industryCounts(): { industries: IndustryCount[]; unclassified: n
 
 export function getContact(id: number): Contact | null {
   const db = getDb();
-  const row = db.prepare(`SELECT * FROM contacts WHERE id = ?`).get(id) as
+  const row = db.prepare(`SELECT ${COLUMNS} FROM contacts WHERE id = ?`).get(id) as
     | unknown as Contact
     | undefined;
   return row ?? null;
@@ -321,6 +327,21 @@ export function listVersion(): string {
     .prepare(`SELECT COUNT(*) AS c, MAX(id) AS m, MAX(updated_at) AS u FROM contacts`)
     .get() as { c: number; m: number | null; u: string | null };
   return `${row.c}.${row.m ?? 0}.${row.u ?? ''}`;
+}
+
+export function getPhoto(id: number): Photo | null {
+  const row = getDb().prepare(`SELECT photo, photo_type FROM contacts WHERE id = ?`).get(id) as
+    | { photo: Uint8Array | null; photo_type: string | null }
+    | undefined;
+  if (!row?.photo || !row.photo_type) return null;
+  return { type: row.photo_type as PhotoType, data: Buffer.from(row.photo) };
+}
+
+// Store or (with null) remove a card's photo.
+export function setPhoto(id: number, photo: Photo | null): void {
+  getDb()
+    .prepare(`UPDATE contacts SET photo = ?, photo_type = ?, updated_at = datetime('now') WHERE id = ?`)
+    .run(photo ? photo.data : null, photo ? photo.type : null, id);
 }
 
 export function countContacts(): number {

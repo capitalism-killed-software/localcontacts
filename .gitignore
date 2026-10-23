@@ -27,3 +27,4 @@ imports/*
 LOCAL_NOTES.md
 
 next-env.d.ts
+data/backups/

@@ -13,6 +13,8 @@
  *                      (default: CONTACTS_DEFAULT_COUNTRY, else US)
  *   --tag-only         only add the source tag to contacts that already match; never
  *                      insert or change anything else
+ *   --no-backup        with --apply, skip the copy of the database normally saved to
+ *                      data/backups/ before writing
  *
  * Formats are recognised from the file contents, not the extension: vCard 2.1/3.0/4.0
  * (Apple, Google, Proton, Android, Outlook, Thunderbird), Google Contacts CSV (both
@@ -27,37 +29,25 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
-import { getDb } from '../src/lib/db';
-import {
-  decodeFileBytes,
-  defaultCountry,
-  defaultSource,
-  detect,
-  FORMAT_LABELS,
-  parseFieldMap,
-  parseText,
-  planMerge,
-  recToColumns,
-  unknownHint,
-  type Batch,
-  type ExistingRow,
-  type FieldMap,
-} from '../src/lib/import';
+import { parseFieldMap, type FieldMap } from '../src/lib/import';
+import { runImport, type ImportFile } from '../src/lib/import/run';
 
 type FileArg = { path: string; source: string | null; map: FieldMap | null };
 
 const USAGE =
-  'Usage: npm run import -- [--apply] [--source=<tag>] [--map=<spec>] [--country=<CC>] [--tag-only] <file> ...';
+  'Usage: npm run import -- [--apply] [--source=<tag>] [--map=<spec>] [--country=<CC>] [--tag-only] [--no-backup] <file> ...';
 
 function parseArgs(argv: string[]) {
   let apply = false;
   let tagOnly = false;
+  let backup = true;
   let source: string | null = null;
   let map: FieldMap | null = null;
   const files: FileArg[] = [];
   for (const a of argv) {
     if (a === '--apply') apply = true;
     else if (a === '--tag-only') tagOnly = true;
+    else if (a === '--no-backup') backup = false;
     else if (a === '--help' || a === '-h') {
       console.log(USAGE);
       process.exit(0);
@@ -73,110 +63,53 @@ function parseArgs(argv: string[]) {
     console.error(USAGE);
     process.exit(1);
   }
-  return { apply, tagOnly, files };
+  return { apply, tagOnly, backup, files };
 }
 
 function main() {
-  const { apply, tagOnly, files } = parseArgs(process.argv.slice(2));
-  const country = defaultCountry();
+  const { apply, tagOnly, backup, files } = parseArgs(process.argv.slice(2));
 
-  // Read and parse every file before touching the database, so a bad file
-  // stops the whole run.
-  const batches: Batch[] = [];
-  let failed = false;
+  const inputs: ImportFile[] = [];
   for (const f of files) {
-    const label = basename(f.path);
     if (!existsSync(f.path)) {
-      console.error(`✗ ${label}: file not found (${f.path})`);
-      failed = true;
-      continue;
+      console.error(`✗ ${basename(f.path)}: file not found (${f.path})`);
+      console.error('\nNothing was written. Fix the files above and re-run.');
+      process.exit(1);
     }
-    const text = decodeFileBytes(readFileSync(f.path));
-    const format = detect(text);
-    if (format === 'unknown') {
-      console.error(`✗ ${label}: ${unknownHint(text, f.path)}`);
-      failed = true;
-      continue;
-    }
-    try {
-      const res = parseText(text, format, { map: f.map ?? undefined });
-      const source = f.source ?? defaultSource(format, res.sourceHint);
-      batches.push({ source, contacts: res.contacts });
-      console.log(`✓ ${label}: ${FORMAT_LABELS[format]}, ${res.contacts.length} contacts, tagged "${source}"`);
-      for (const w of res.warnings) console.log(`    note: ${w}`);
-    } catch (err) {
-      console.error(`✗ ${label}: ${(err as Error).message}`);
-      failed = true;
-    }
+    inputs.push({ name: basename(f.path), bytes: readFileSync(f.path), source: f.source, map: f.map });
   }
-  if (failed) {
+
+  const r = runImport(inputs, { apply, tagOnly, backup });
+  for (const f of r.files) {
+    if (f.ok) {
+      console.log(`✓ ${f.name}: ${f.label}, ${f.count} contacts, tagged "${f.source}"`);
+      for (const w of f.warnings) console.log(`    note: ${w}`);
+    } else console.error(`✗ ${f.name}: ${f.error}`);
+  }
+  if (!r.ok || !r.stats) {
     console.error('\nNothing was written. Fix the files above and re-run.');
     process.exit(1);
   }
 
-  const db = getDb();
-  const before = (db.prepare('SELECT COUNT(*) AS c FROM contacts').get() as { c: number }).c;
-  const existing = db
-    .prepare(
-      `SELECT id, full_name, title, company, email, phone, alt_emails, alt_phones, urls,
-              notes, connected_on, last_contacted, sources
-       FROM contacts`
-    )
-    .all() as unknown as ExistingRow[];
-
-  const { rows, stats } = planMerge(existing, batches, { tagOnly, country });
-
+  const st = r.stats;
   console.log('');
-  console.log('Contacts in files      :', stats.incoming);
-  console.log('New contacts           :', stats.inserted);
-  console.log('Merged into existing   :', stats.mergedIntoExisting);
-  console.log('Merged within files    :', stats.mergedWithinImport);
-  if (tagOnly) console.log('Skipped (tag-only)     :', stats.skippedUnmatched);
-  console.log('Emails added           :', stats.addedEmails, `(${stats.filledEmail} contacts gained their first)`);
-  console.log('Phones added           :', stats.addedPhones, `(${stats.filledPhone} contacts gained their first)`);
-  console.log('Phone country          :', country);
-  console.log('DB before / after      :', `${before} / ${before + stats.inserted}`);
+  console.log('Contacts in files      :', st.incoming);
+  console.log('New contacts           :', st.inserted);
+  console.log('Merged into existing   :', st.mergedIntoExisting);
+  console.log('Merged within files    :', st.mergedWithinImport);
+  if (tagOnly) console.log('Skipped (tag-only)     :', st.skippedUnmatched);
+  console.log('Emails added           :', st.addedEmails, `(${st.filledEmail} contacts gained their first)`);
+  console.log('Phones added           :', st.addedPhones, `(${st.filledPhone} contacts gained their first)`);
+  console.log('Photos added           :', st.addedPhotos);
+  console.log('Phone country          :', r.country);
+  console.log('DB before / after      :', `${r.before} / ${r.before + st.inserted}`);
 
-  if (!apply) {
-    console.log('\nDry run: nothing written. Back up data/contacts.db, then re-run with --apply.');
+  if (!r.applied) {
+    console.log('\nDry run: nothing written. Re-run with --apply to write (a backup is saved first).');
     return;
   }
-
-  const insert = db.prepare(`
-    INSERT INTO contacts (full_name, title, company, email, phone, alt_emails, alt_phones, urls,
-                          notes, connected_on, last_contacted, sources)
-    VALUES (@full_name, @title, @company, @email, @phone, @alt_emails, @alt_phones, @urls,
-            @notes, @connected_on, @last_contacted, @sources)
-  `);
-  const update = db.prepare(`
-    UPDATE contacts SET
-      full_name = @full_name, title = @title, company = @company, email = @email, phone = @phone,
-      alt_emails = @alt_emails, alt_phones = @alt_phones, urls = @urls, notes = @notes,
-      connected_on = @connected_on, last_contacted = @last_contacted, sources = @sources,
-      updated_at = datetime('now')
-    WHERE id = @id
-  `);
-
-  let inserted = 0;
-  let updated = 0;
-  db.exec('BEGIN');
-  try {
-    for (const r of rows) {
-      if (r.id === null) {
-        insert.run(recToColumns(r));
-        inserted++;
-      } else if (r.dirty) {
-        update.run({ id: r.id, ...recToColumns(r) });
-        updated++;
-      }
-    }
-    db.exec('COMMIT');
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
-  }
-  db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
-  console.log(`\nWritten: ${inserted} inserted, ${updated} updated.`);
+  if (r.backup) console.log(`\nBackup saved to ${r.backup}`);
+  console.log(`\nWritten: ${r.written!.inserted} inserted, ${r.written!.updated} updated.`);
 }
 
 main();
