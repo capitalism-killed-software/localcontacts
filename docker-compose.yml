@@ -1,0 +1,14 @@
+services:
+  localcontacts:
+    build: .
+    container_name: localcontacts
+    restart: unless-stopped
+    # Bound to the host's loopback on purpose: reach it through a VPN, an SSH
+    # tunnel or an authenticating proxy. See docs/DEPLOY.md.
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./data:/app/data
+      - ./imports:/app/imports
+    environment:
+      - CONTACTS_DEFAULT_COUNTRY=US

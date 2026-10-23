@@ -1,0 +1,9 @@
+node_modules
+.next
+data
+imports
+.git
+.github
+*.md
+!README.md
+tests

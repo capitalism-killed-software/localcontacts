@@ -1,29 +1,33 @@
 # localcontacts
 
 One local, searchable database for the contacts you have scattered across Google, Apple,
-Outlook, Proton, LinkedIn and the rest. Runs on your machine. Nothing leaves it.
+Outlook, Proton, LinkedIn, Telegram and the rest. Runs on your own machine. Nothing leaves it.
 
-Import your exports, let the importer de-duplicate and merge them, then search, sort,
-filter, edit and fill the gaps.
+Drop in the exports you already have, and the importer recognises each file, de-duplicates
+people across them (by email, then phone, then name), keeps every email and phone it finds,
+and gives you one list to search, sort, filter and edit.
 
-## Status
+- **[Why this exists](docs/ABOUT.md)**: what it is for, what it refuses to do with your data.
+- **[Deployment guide](docs/DEPLOY.md)**: your laptop, a home server, Docker, reaching it safely from your phone.
+- **[Roadmap](docs/ROADMAP.md)**: what is done, what is next.
 
-Early, and honest about it. Today the importer handles:
+## Supported exports
 
-| Source | File | Works |
+| Source | File | Notes |
 |---|---|---|
-| Apple (iCloud, macOS Contacts, iPhone) | `.vcf` (vCard 3.0) | yes |
-| Google Contacts | `.vcf` export | yes |
-| Proton Contacts | `.vcf` (vCard 4.0) | yes |
-| LinkedIn | `Connections.csv` | yes |
-| Google Contacts | `.csv` export | **not yet**: names only, email and phone are lost |
-| Outlook / Microsoft 365 | `.csv` export | **not yet**: names only |
-| Telegram | `result.json` | **not yet**: ignored |
-| Android (vCard 2.1, quoted-printable) | `.vcf` | **not yet**: names come out garbled |
-| Any other CSV | `.csv` | **not yet** |
+| Apple: iCloud, macOS Contacts, iPhone | `.vcf` | vCard 3.0, groups, photos skipped |
+| Google Contacts | `.vcf` or `.csv` | both CSV layouts, multi-value cells |
+| Proton Contacts | `.vcf` | vCard 4.0 |
+| Outlook, Microsoft 365, Outlook.com | `.csv` | all three email and every phone column |
+| Android / Samsung Contacts | `.vcf` | vCard 2.1, quoted-printable names |
+| Thunderbird, Fastmail, Nextcloud, any CardDAV | `.vcf` | |
+| LinkedIn | `Connections.csv` | profile URL kept, connection date kept |
+| Telegram | `result.json` | name and phone |
+| Any CRM or spreadsheet | `.csv` with a header row | columns guessed, or named with `--map` |
+| Signal, WhatsApp, Messenger, Teams | none | these apps do not export contacts; export your phone's address book instead |
 
-Only the first email and phone of a vCard are kept for now. The fixes, in order, are in
-[docs/ROADMAP.md](docs/ROADMAP.md).
+Formats are recognised from the file contents, not the extension. A file that cannot be
+recognised stops the run with a hint and nothing is written.
 
 ## Requirements
 
@@ -42,29 +46,44 @@ The database is created at `data/contacts.db` on first start. To look around wit
 data before importing your own:
 
 ```bash
-npm run import -- seed/sample-contacts.csv
+npm run import -- --apply seed/sample-contacts.csv
 ```
 
 ## Import your own contacts
 
 1. Export from each platform. Menus move, so check your app if a path differs:
-   - **Google Contacts:** contacts.google.com → Export → vCard
+   - **Google Contacts:** contacts.google.com → Export → vCard (or Google CSV)
    - **Apple:** icloud.com/contacts → select all → Export vCard; or macOS Contacts → File → Export → Export vCard
+   - **Outlook.com / Microsoft 365:** People → Manage → Export contacts
    - **Proton:** Settings → Contacts → Export contacts
    - **LinkedIn:** Settings & Privacy → Data privacy → Get a copy of your data → Connections (arrives by email)
+   - **Telegram:** Desktop app → Settings → Advanced → Export Telegram data → Contacts, JSON format
+   - **Android:** Contacts app → Manage contacts → Export → `.vcf`
    - **Signal and WhatsApp** do not export contacts; they read your phone's address book, so export that (Apple or Android).
 2. Put the files in `imports/` (gitignored) or anywhere outside the repo.
-3. Back up `data/contacts.db`, then run:
+3. Run the importer. It is a dry run until you add `--apply`:
 
 ```bash
-npm run import:sources -- imports/contacts.vcf imports/Connections.csv
+npm run import -- imports/contacts.vcf imports/Connections.csv imports/result.json
+npm run import -- --apply imports/contacts.vcf imports/Connections.csv imports/result.json
 ```
 
-`import:sources` writes immediately (a dry-run mode is on the roadmap). It is safe to
-re-run: a person matched by email, then by name, is kept once and missing fields are
-filled in rather than duplicated. `--source=<tag>` labels every file in the run; without
-it the tag is guessed from the file name. `--tag-only` updates labels on matching rows and
-never inserts.
+The dry run prints, per file, what it recognised, how many contacts it found and what it
+will not keep (photos, postal addresses, birthdays), then how many contacts are new and how
+many merge into ones you already have. Re-running is safe: a person matched by any email,
+then any phone number, then full name is kept once, empty fields are filled in, and further
+emails, phones and links are added. Nothing already stored is overwritten.
+
+Options:
+
+```
+--source=<tag>    origin tag for the files that follow (default: inferred, e.g. apple, google, proton, linkedin)
+--map=<spec>      column names for a generic CSV, e.g. --map=full_name=Name,email=Email,phone=Mobile
+--country=<CC>    country for phone numbers written without a + prefix (default: US, or CONTACTS_DEFAULT_COUNTRY)
+--tag-only        only add the source tag to contacts that already match; insert and change nothing else
+```
+
+Back up `data/contacts.db` before the first `--apply`; see the [deployment guide](docs/DEPLOY.md) for how.
 
 ## Cleanup scripts
 
@@ -79,7 +98,8 @@ npm run classify:industry [-- --apply]           # keyword rules over company + 
 ## Privacy
 
 Everything is a local SQLite file in `data/`, which is gitignored along with `imports/`
-and any `.vcf`, `.csv` or `.json` at the repo root. No network calls, no accounts, no AI.
+and any `.vcf`, `.csv` or `result.json` at the repo root. No accounts, no telemetry, no AI,
+no network calls. [docs/ABOUT.md](docs/ABOUT.md) spells out the rules.
 
 ## Test
 
@@ -90,7 +110,7 @@ npm run typecheck
 
 ## Stack
 
-Next.js 14 (App Router, TypeScript), Tailwind CSS, `node:sqlite`.
+Next.js 14 (App Router, TypeScript), Tailwind CSS, `node:sqlite`, `libphonenumber-js`.
 
 ## Layout
 
@@ -99,7 +119,9 @@ Next.js 14 (App Router, TypeScript), Tailwind CSS, `node:sqlite`.
 - `src/app/contacts/[id]/page.tsx`: detail, edit, delete
 - `src/lib/db.ts`: SQLite connection, schema and migrations
 - `src/lib/contacts.ts`: queries
-- `scripts/`: import and cleanup tools
+- `src/lib/import/`: format detection, one parser per format, phone and email normalisation, the merge engine
+- `scripts/import.ts`: the command-line importer
+- `tests/fixtures/`: fake exports in each platform's real shape
 
 ## Licence
 
