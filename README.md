@@ -11,8 +11,10 @@ The interface is Apple's Address Book from OS X Lion and Mountain Lion, measured
 original and drawn in CSS: the leather book, Groups and Names on the left page, the card on the
 right, the red ribbon that shows and hides the groups. It runs in any browser on any OS.
 
+- **[Exporting your contacts](docs/exporting-your-contacts.md)**: step by step for Google, Apple, Microsoft, Proton, LinkedIn, Telegram, Android and more.
 - **[Why this exists](docs/ABOUT.md)**: what it is for, what it refuses to do with your data.
 - **[Deployment guide](docs/DEPLOY.md)**: your laptop, a home server, Docker, reaching it safely from your phone.
+- **[Contributing](CONTRIBUTING.md)**: setup, ground rules, adding an import format.
 - **[Roadmap](docs/ROADMAP.md)**: what is done, what is next.
 
 ## Supported exports
@@ -55,14 +57,15 @@ npm run import -- --apply seed/sample-contacts.csv
 
 ## Import your own contacts
 
-1. Export from each platform. Menus move, so check your app if a path differs:
-   - **Google Contacts:** contacts.google.com → Export → vCard (or Google CSV)
-   - **Apple:** icloud.com/contacts → select all → Export vCard; or macOS Contacts → File → Export → Export vCard
-   - **Outlook.com / Microsoft 365:** People → Manage → Export contacts
-   - **Proton:** Settings → Contacts → Export contacts
-   - **LinkedIn:** Settings & Privacy → Data privacy → Get a copy of your data → Connections (arrives by email)
-   - **Telegram:** Desktop app → Settings → Advanced → Export Telegram data → Contacts, JSON format
-   - **Android:** Contacts app → Manage contacts → Export → `.vcf`
+1. Export from each platform. [Exporting your contacts](docs/exporting-your-contacts.md) has
+   the steps for each one; in short:
+   - **Google Contacts:** select all → More actions → Export
+   - **Apple:** icloud.com/contacts → Actions → Select All Contacts → Share → Export vCard
+   - **Outlook.com / Microsoft 365:** People → Manage contacts → Export contacts
+   - **Proton:** Contacts → select all → … → Export selection as .VCF
+   - **LinkedIn:** Me → Settings & Privacy → Data privacy → Download your data → Connections (arrives by email)
+   - **Telegram:** Desktop app → Settings → Advanced → Export Telegram data → Contacts, JSON
+   - **Android:** Contacts app → Fix & manage → Export to file
    - **Signal and WhatsApp** do not export contacts; they read your phone's address book, so export that (Apple or Android).
 2. Put the files in `imports/` (gitignored) or anywhere outside the repo.
 3. Run the importer. It is a dry run until you add `--apply`:
@@ -88,6 +91,19 @@ Options:
 ```
 
 Back up `data/contacts.db` before the first `--apply`; see the [deployment guide](docs/DEPLOY.md) for how.
+
+## Export
+
+```bash
+npm run export -- --format=vcard --out=contacts.vcf     # every contact, vCard 3.0
+npm run export -- --format=csv --source=linkedin        # CSV to stdout, LinkedIn group only
+```
+
+The filters are the book's: `--q`, `--filter` (e.g. `no_email`), `--source`, `--industry`,
+`--sort`. vCard keeps every email, phone and link and imports into Apple, Google, Outlook,
+Proton and Android; CSV has one column per value (Email, Email 2, …) and opens in any
+spreadsheet. Both come back through `npm run import` unchanged. Each card in the book also has
+an **Export vCard** button.
 
 ## Run it as an app
 
@@ -132,19 +148,23 @@ npm run typecheck
 
 ## Stack
 
-Next.js 14 (App Router, TypeScript), `node:sqlite`, `libphonenumber-js`, hand-written CSS (Tailwind is installed but the book is plain CSS).
+Next.js 16 and React 19 (App Router, TypeScript), `node:sqlite`, `libphonenumber-js`, plain CSS. No other runtime dependencies.
 
 ## Layout
 
 - `src/app/page.tsx`: the book. `?id=` opens a card, `&edit=1` edits it, `?new=1` starts one;
-  `q`, `filter`, `source`, `industry` and `sort` describe the list and survive every click
-- `src/components/`: `Book`, `GroupsPane`, `NamesPane`, `CardPane` with `CardView` and
-  `CardEdit`, `MultiField` (the ⊖ ⊕ rows), `SearchBar`, `GroupsToggle` (the ribbon)
+  `q`, `filter`, `source`, `industry` and `sort` describe the list and survive every click.
+  `src/lib/context.ts` parses them for the page, the API and the export script alike
+- `src/app/api/contacts`: the names list as JSON; `src/app/api/vcard/[id]`: one card as a download
+- `src/components/`: `Book`, `GroupsPane`, `NamesPane` and `NamesList` (the windowed list),
+  `CardPane` with `CardView` and `CardEdit`, `MultiField` (the ⊖ ⊕ rows), `SearchBar`,
+  `GroupsToggle` (the ribbon)
 - `src/app/globals.css`: the whole Address Book look, with the measurements it came from
 - `src/lib/db.ts`: SQLite connection, schema and migrations
 - `src/lib/contacts.ts`: queries; `names.ts`, `groups.ts`, `urls.ts`: list sorting, the Groups column, the URL model
 - `src/lib/import/`: format detection, one parser per format, phone and email normalisation, the merge engine
-- `scripts/import.ts`: the command-line importer; `scripts/app/`: launchers and the desktop installer
+- `src/lib/export/`: vCard and CSV writers
+- `scripts/import.ts`, `scripts/export.ts`: the command-line importer and exporter; `scripts/app/`: launchers and the desktop installer
 - `tests/fixtures/`: fake exports in each platform's real shape
 
 ## Licence

@@ -41,10 +41,27 @@ browser can install it; `npm run app` opens a chromeless window and stops the se
 closes; `scripts/app/install-desktop.sh` makes a `.app` on macOS and a launcher entry on Linux;
 `launch.cmd` for Windows. CI now runs on Ubuntu, macOS and Windows with Node 22 and 24.
 
-**Measured with 7,000 contacts:** the whole page is 2.1 MB and renders in about 0.3 s on
-localhost; a card click fetches a 1.4 MB server-components payload in about 0.1 s, because the
-names list travels with every card. Fine for one person on one machine; pagination (below)
-is what would change it.
+**Export, a lighter names list, guides and upgrades (2026-10-22).** `npm run export` writes
+vCard 3.0 or CSV with the book's filters, and each card has an Export vCard button; every
+fixture survives an export and re-import (`tests/export/cli.test.ts`). The names list is now
+fetched once per search, group or sort from `/api/contacts` and only the rows on screen are
+drawn. `docs/exporting-your-contacts.md` covers each platform with links to the vendors' help
+pages; `CONTRIBUTING.md` explains how to add a format. Next 16, React 19, Vitest 5, csv-parse 7
+and TypeScript 6, Tailwind removed: `npm audit` reports nothing. Fixed on the way: vCard
+unescaping of `\;` and `\\n`, CSV detection when the first row has a multi-line cell, numbered
+URL columns, and a merge that joined two people with different emails on a shared office phone.
+
+**Measured with 7,000 contacts** (production build, localhost):
+
+| | Before | Now |
+|---|---|---|
+| Full page | 2.1 MB | 27 KB |
+| A card click | 1.4 MB | 12 KB, about 20 ms |
+| Names list | in every response | 172 KB once, when search, group or sort changes or after a save |
+| Rows in the page | 7,000 | about 40 |
+
+Trade-off: the browser's own find (Ctrl-F) only sees the names on screen; the search box
+searches everything.
 
 ## What done looks like
 
@@ -71,27 +88,19 @@ npm run dev
 
 Done, see above.
 
-### 3. Docs for a stranger
+### 3. Docs for a stranger, 4. Export and the names list, 5. Housekeeping
 
-README, `docs/ABOUT.md` (why it exists) and `docs/DEPLOY.md` are written. Still to do:
-`docs/exporting-your-contacts.md` with a section per platform (Google, iCloud, macOS,
-iPhone, Outlook.com, Outlook desktop, Teams, Proton, LinkedIn, Telegram, Android,
-Thunderbird, Yahoo, Fastmail/Nextcloud, Signal, WhatsApp, Facebook, Slack, any CRM or
-spreadsheet), each step checked against the product's current menus with a screenshot
-where it helps; and `CONTRIBUTING.md` with how to add a parser (fixture, parser, detector
-rule, test).
+Done, see above. Screenshots in the export guide were dropped: they need real accounts on each
+platform, so the guide links to each vendor's help page instead, with the date it was checked.
 
-### 4. UI follow-through
+### Next
 
-`npm run export -- --format vcard|csv` from the same normalised model; server-side pagination
-or a virtualised names list (see the 7,000-row numbers above); a photo on the card; later, an
-`/import` page on the same library with a dry-run summary and an Apply button. Editing of the
-extra emails, phones and links is done.
-
-### 5. Housekeeping
-
-Upgrade Next and Vitest to clear the audit; drop the `node:sqlite` test shim if Vitest no
-longer needs it.
+- An `/import` page that takes a file upload, shows the dry-run summary and has an Apply button,
+  on the same library as the command line.
+- A photo on the card (vCard `PHOTO`, currently skipped on import).
+- Keyboard navigation in the names list (up and down arrows move between cards).
+- Re-check the export guide against the vendors' pages every few months.
+- Run `scripts/app/install-desktop.sh` on a Mac once; the `.app` bundle is untested there.
 
 ## Decisions taken
 
