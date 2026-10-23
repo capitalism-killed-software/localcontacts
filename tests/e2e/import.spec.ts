@@ -66,3 +66,9 @@ test('the export guide is served by the app itself', async ({ page }) => {
   await expect(guide.locator('h2#google-contacts')).toBeVisible();
   await expect(guide.locator('.help-body table').first()).toBeVisible();
 });
+
+test('requests addressed to another host name are refused', async ({ request }) => {
+  const res = await request.get('/api/contacts', { headers: { Host: 'evil.example' } });
+  expect(res.status()).toBe(421);
+  expect(await res.text()).toContain('CONTACTS_ALLOWED_HOSTS');
+});

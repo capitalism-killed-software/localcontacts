@@ -69,3 +69,11 @@ test('on a phone the book shows one page at a time', async ({ page }) => {
   await page.locator('.back-link').click();
   await expect(page.locator('.page-left')).toBeVisible();
 });
+
+test('an unknown page shows the book-style not-found sheet', async ({ page }) => {
+  const res = await page.goto('/no/such/page');
+  expect(res?.status()).toBe(404);
+  await expect(page.locator('.error-sheet')).toContainText('Nothing here');
+  await page.getByText('Back to Contacts').click();
+  await expect(page.locator('.names-count')).toContainText('card');
+});

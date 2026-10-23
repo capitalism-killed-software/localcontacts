@@ -7,7 +7,14 @@ import CopyButton from './CopyButton';
 import { CardPhoto } from './Silhouette';
 
 const lines = (v: string | null): string[] => (v ? v.split('\n').map((s) => s.trim()).filter(Boolean) : []);
-const withScheme = (u: string): string => (/^[a-z][a-z0-9+.-]*:/i.test(u) ? u : `https://${u}`);
+// A link from an imported file becomes clickable only if it is a web, mail or
+// phone link; anything else (javascript:, data:, file:) is shown as text.
+export function safeHref(u: string): string | null {
+  const t = u.trim();
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(t)) return t;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(t)) return null;
+  return /^[\w-]+(\.[\w-]+)+(\/|$)/.test(t) ? `https://${t}` : null;
+}
 
 type FieldRow = { key: string; label: string; value: ReactNode; copy?: string };
 
@@ -35,17 +42,20 @@ export default function CardView({
     rows.push({ key: 'phone', label: 'phone', value: <Link href={editHref} className="quiet-link">add phone…</Link> });
   }
   phones.forEach((p, i) => rows.push({ key: `phone-${i}`, label: i === 0 ? 'phone' : 'other phone', value: p, copy: p }));
-  urls.forEach((u, i) =>
+  urls.forEach((u, i) => {
+    const href = safeHref(u);
     rows.push({
       key: `url-${i}`,
       label: 'link',
-      value: (
-        <a href={withScheme(u)} target="_blank" rel="noreferrer">
+      value: href ? (
+        <a href={href} target="_blank" rel="noreferrer">
           {u}
         </a>
+      ) : (
+        u
       ),
-    })
-  );
+    });
+  });
   const meta: FieldRow[] = [];
   if (contact.industry) meta.push({ key: 'industry', label: 'industry', value: contact.industry });
   if (contact.connected_on) meta.push({ key: 'connected', label: 'connected', value: contact.connected_on });

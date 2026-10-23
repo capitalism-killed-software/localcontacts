@@ -62,11 +62,24 @@ The schema migrates itself on start, so an older database just works.
 
 Pick one. All of them keep the app off the public internet.
 
+**First, tell it the name you'll use.** The app only answers requests addressed to
+`localhost`, `127.0.0.1` or `::1`; anything else gets "does not answer requests for …". This
+stops a website you visit from reaching your contacts by pointing its own domain at your
+machine (DNS rebinding). If you reach it by another name or address, list it:
+
+```bash
+CONTACTS_ALLOWED_HOSTS=100.64.1.2,contacts.example.com npm start
+```
+
+With Docker, add `- CONTACTS_ALLOWED_HOSTS=…` under `environment:` in `docker-compose.yml`.
+The SSH tunnel below needs nothing, because you still open `localhost`.
+
 **Tailscale or another VPN.** Install Tailscale on the server and on your phone, then
 make the app listen on the server's Tailscale address instead of localhost. With Docker,
 change the port line in `docker-compose.yml` to `"100.x.y.z:3000:3000"` (your Tailscale
-IP) and restart. Without Docker: `HOSTNAME=100.x.y.z npm start`. Only devices in your
-tailnet can connect.
+IP), add `CONTACTS_ALLOWED_HOSTS=100.x.y.z` and restart. Without Docker:
+`HOSTNAME=100.x.y.z CONTACTS_ALLOWED_HOSTS=100.x.y.z npm start`. Only devices in your tailnet
+can connect.
 
 **SSH tunnel.** From the computer you are sitting at:
 
@@ -87,6 +100,8 @@ contacts.example.com {
     reverse_proxy 127.0.0.1:3000
 }
 ```
+
+and start the app with `CONTACTS_ALLOWED_HOSTS=contacts.example.com`.
 
 Basic auth over HTTPS is adequate for one person. It is not a substitute for the VPN
 options if the server holds other sensitive things.
@@ -165,4 +180,5 @@ All optional, all environment variables:
 | `HOSTNAME` | `localhost` | address to bind to |
 | `CONTACTS_DB_PATH` | `data/contacts.db` | where the database lives |
 | `CONTACTS_DEFAULT_COUNTRY` | `US` | country assumed for phone numbers without a `+` prefix |
+| `CONTACTS_ALLOWED_HOSTS` | unset | extra host names or addresses the app answers, comma-separated (see section 3); `*` turns the check off |
 | `NEXT_TELEMETRY_DISABLED` | unset (`1` in Docker) | stop Next.js's anonymous telemetry |

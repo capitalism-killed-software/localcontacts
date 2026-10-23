@@ -934,6 +934,12 @@ body {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
     line-height: 1.5;
   }
+  .error-sheet {
+    width: min(520px, 100%);
+  }
+  .error-sheet p {
+    margin: 10px 0 0;
+  }
   .help-back {
     display: inline-block;
     margin-bottom: 16px;

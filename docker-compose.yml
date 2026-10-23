@@ -12,3 +12,5 @@ services:
       - ./imports:/app/imports
     environment:
       - CONTACTS_DEFAULT_COUNTRY=US
+      # Names other than localhost you reach it by (Tailscale IP, proxy hostname):
+      # - CONTACTS_ALLOWED_HOSTS=100.64.1.2,contacts.example.com
