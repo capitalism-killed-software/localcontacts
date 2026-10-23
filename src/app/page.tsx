@@ -7,7 +7,6 @@ import {
   industryCounts,
   listContacts,
   type ContactFilter,
-  type ContactSource,
   type SortKey,
   type SortDir,
 } from '@/lib/contacts';
@@ -25,16 +24,25 @@ const FILTERS: { key: ContactFilter; label: string; count: (s: ReturnType<typeof
   { key: 'name_is_email', label: 'Name = email', count: (s) => s.nameIsEmail },
 ];
 
-const SOURCES: { key: ContactSource; label: string; count: (s: ReturnType<typeof sourceCounts>) => number | null }[] = [
-  { key: 'all', label: 'Any source', count: () => null },
-  { key: 'linkedin', label: 'LinkedIn', count: (s) => s.linkedin },
-  { key: 'iphone', label: 'iPhone', count: (s) => s.iphone },
-  { key: 'google-personal', label: 'Google personal', count: (s) => s['google-personal'] },
-  { key: 'google-work', label: 'Google work', count: (s) => s['google-work'] },
-];
+// Display names for common origin tags; anything else is shown as typed.
+const TAG_LABELS: Record<string, string> = {
+  linkedin: 'LinkedIn',
+  iphone: 'iPhone',
+  apple: 'Apple',
+  google: 'Google',
+  'google-personal': 'Google personal',
+  'google-work': 'Google work',
+  outlook: 'Outlook',
+  proton: 'Proton',
+  telegram: 'Telegram',
+  thunderbird: 'Thunderbird',
+  vcard: 'vCard',
+  csv: 'CSV',
+};
+const tagLabel = (tag: string) =>
+  TAG_LABELS[tag] ?? tag.charAt(0).toUpperCase() + tag.slice(1).replace(/[-_]+/g, ' ');
 
 const FILTER_KEYS = new Set<ContactFilter>(FILTERS.map((f) => f.key));
-const SOURCE_KEYS = new Set<ContactSource>(SOURCES.map((s) => s.key));
 const SORT_KEYS = new Set<SortKey>([
   'default',
   'name',
@@ -60,9 +68,11 @@ export default function HomePage({
   const filter: ContactFilter = FILTER_KEYS.has(searchParams.filter as ContactFilter)
     ? (searchParams.filter as ContactFilter)
     : 'all';
-  const source: ContactSource = SOURCE_KEYS.has(searchParams.source as ContactSource)
-    ? (searchParams.source as ContactSource)
-    : 'all';
+  const srcCounts = sourceCounts();
+  const knownTags = new Set(srcCounts.tags.map((t) => t.tag));
+  const rawSource = (searchParams.source ?? 'all').trim();
+  const source =
+    rawSource === 'all' || rawSource === 'untagged' || knownTags.has(rawSource) ? rawSource : 'all';
   const sort: SortKey = SORT_KEYS.has(searchParams.sort as SortKey)
     ? (searchParams.sort as SortKey)
     : 'default';
@@ -70,14 +80,20 @@ export default function HomePage({
   const industry = (searchParams.industry ?? 'all').trim() || 'all';
   const contacts = listContacts(q, filter, sort, dir, source, industry);
   const stats = contactStats();
-  const srcCounts = sourceCounts();
   const indCounts = industryCounts();
+  const sourceChips: Array<{ key: string; label: string; n: number | null }> = [
+    { key: 'all', label: 'Any source', n: null },
+    ...srcCounts.tags.map((t) => ({ key: t.tag, label: tagLabel(t.tag), n: t.count })),
+    ...(srcCounts.untagged > 0 && srcCounts.tags.length > 0
+      ? [{ key: 'untagged', label: 'Untagged', n: srcCounts.untagged }]
+      : []),
+  ];
   const total = stats.total;
 
   // Preserve q + the other dimensions; override only what's passed.
   const buildHref = (over: {
     filter?: ContactFilter;
-    source?: ContactSource;
+    source?: string;
     industry?: string;
     sort?: SortKey;
     dir?: SortDir;
@@ -101,7 +117,7 @@ export default function HomePage({
   };
 
   const href = (f: ContactFilter) => buildHref({ filter: f });
-  const sourceHref = (src: ContactSource) => buildHref({ source: src });
+  const sourceHref = (src: string) => buildHref({ source: src });
   const industryHref = (ind: string) => buildHref({ industry: ind });
 
   // A sortable column header: clicking cycles asc → desc; switching columns starts at asc.
@@ -145,32 +161,33 @@ export default function HomePage({
           );
         })}
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium uppercase tracking-wide text-neutral-400">Source</span>
-        {SOURCES.map((sgroup) => {
-          const active = sgroup.key === source;
-          const n = sgroup.count(srcCounts);
-          return (
-            <Link
-              key={sgroup.key}
-              href={sourceHref(sgroup.key)}
-              className={
-                active
-                  ? 'rounded-full border border-sky-700 bg-sky-700 px-3 py-1 text-xs font-medium text-white'
-                  : 'rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-600 hover:border-neutral-400'
-              }
-            >
-              {sgroup.label}
-              {n !== null && (
-                <span className={active ? ' text-sky-200' : ' text-neutral-400'}>
-                  {' '}
-                  {n.toLocaleString()}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </div>
+      {srcCounts.tags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium uppercase tracking-wide text-neutral-400">Source</span>
+          {sourceChips.map((chip) => {
+            const active = chip.key === source;
+            return (
+              <Link
+                key={chip.key}
+                href={sourceHref(chip.key)}
+                className={
+                  active
+                    ? 'rounded-full border border-sky-700 bg-sky-700 px-3 py-1 text-xs font-medium text-white'
+                    : 'rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-600 hover:border-neutral-400'
+                }
+              >
+                {chip.label}
+                {chip.n !== null && (
+                  <span className={active ? ' text-sky-200' : ' text-neutral-400'}>
+                    {' '}
+                    {chip.n.toLocaleString()}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      )}
       {(indCounts.industries.length > 0 || indCounts.unclassified > 0) && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-medium uppercase tracking-wide text-neutral-400">

@@ -65,11 +65,15 @@ export default function ContactDetailPage({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Email" value={contact.email} copyable copyLabel="email" flagIfEmpty />
           <Field label="Phone" value={contact.phone} copyable copyLabel="phone" flagIfEmpty />
+          {contact.alt_emails && <Field label="Other emails" value={contact.alt_emails} multiline />}
+          {contact.alt_phones && <Field label="Other phones" value={contact.alt_phones} multiline />}
           <Field label="Title" value={contact.title} />
           <Field label="Company" value={contact.company} />
           <Field label="Industry" value={contact.industry} />
           <Field label="Connected on" value={contact.connected_on} />
           <Field label="Last contacted" value={contact.last_contacted} />
+          {contact.urls && <Field label="Links" value={contact.urls} multiline />}
+          <Field label="Sources" value={contact.sources} />
           <Field label="Updated" value={contact.updated_at} />
           {contact.notes && (
             <div className="sm:col-span-2 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
@@ -91,12 +95,14 @@ function Field({
   copyable = false,
   copyLabel,
   flagIfEmpty = false,
+  multiline = false,
 }: {
   label: string;
   value: string | null;
   copyable?: boolean;
   copyLabel?: string;
   flagIfEmpty?: boolean;
+  multiline?: boolean;
 }) {
   // A flagged-but-empty field (missing email/phone) gets a yellow card so it's
   // obvious there's a gap to fill in via Edit.
@@ -112,7 +118,7 @@ function Field({
     >
       <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">{label}</div>
       <div className="mt-1 flex items-center justify-between gap-2">
-        <div className="break-all text-sm text-neutral-900">
+        <div className={multiline ? 'whitespace-pre-wrap break-all text-sm text-neutral-900' : 'break-all text-sm text-neutral-900'}>
           {empty ? (
             flagged ? (
               <span className="font-medium text-amber-700">Missing — add</span>

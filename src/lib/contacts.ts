@@ -7,6 +7,9 @@ export type Contact = {
   company: string | null;
   email: string | null;
   phone: string | null;
+  alt_emails: string | null; // newline-separated further emails
+  alt_phones: string | null; // newline-separated further phones
+  urls: string | null; // newline-separated links
   notes: string | null;
   connected_on: string | null;
   last_contacted: string | null;
@@ -16,6 +19,8 @@ export type Contact = {
   updated_at: string;
 };
 
+// What the forms edit. The import-managed lists (alt_emails, alt_phones,
+// urls, sources) are left alone by create/update.
 export type ContactInput = {
   full_name: string;
   title?: string | null;
@@ -83,23 +88,19 @@ const FILTER_SQL: Record<ContactFilter, string | null> = {
   name_is_email: "full_name LIKE '%@%'",
 };
 
-// Origin filter (which export a contact came from). Matched as an exact token
-// within the comma-separated `sources` column.
-export type ContactSource = 'all' | 'linkedin' | 'iphone' | 'google-personal' | 'google-work';
-const SOURCE_TAGS = new Set<ContactSource>([
-  'all',
-  'linkedin',
-  'iphone',
-  'google-personal',
-  'google-work',
-]);
+// Origin tags are free-form (whatever the importer recorded), matched as an
+// exact token within the comma-separated `sources` column. 'untagged' selects
+// rows with no tag at all.
+const TAG_RE = /^[A-Za-z0-9_.-]+$/;
+
+const SEARCH_COLUMNS = ['full_name', 'company', 'email', 'alt_emails', 'title', 'phone', 'alt_phones', 'notes', 'industry'];
 
 export function listContacts(
   query?: string,
   filter: ContactFilter = 'all',
   sort: SortKey = 'default',
   dir: SortDir = 'asc',
-  source: ContactSource = 'all',
+  source: string = 'all',
   industry: string = 'all'
 ): Contact[] {
   const db = getDb();
@@ -110,8 +111,9 @@ export function listContacts(
   const filterSql = FILTER_SQL[filter] ?? null;
   if (filterSql) conditions.push(filterSql);
 
-  if (source !== 'all' && SOURCE_TAGS.has(source)) {
-    // Exact token match inside the comma-separated list.
+  if (source === 'untagged') {
+    conditions.push('sources IS NULL');
+  } else if (source !== 'all' && TAG_RE.test(source)) {
     conditions.push(`(',' || sources || ',') LIKE ?`);
     params.push(`%,${source},%`);
   }
@@ -127,22 +129,14 @@ export function listContacts(
 
   if (q.length > 0) {
     const like = `%${q.replace(/[%_\\]/g, (m) => '\\' + m)}%`;
-    conditions.push(
-      `(full_name LIKE ? ESCAPE '\\'
-        OR company  LIKE ? ESCAPE '\\'
-        OR email    LIKE ? ESCAPE '\\'
-        OR title    LIKE ? ESCAPE '\\'
-        OR phone    LIKE ? ESCAPE '\\'
-        OR notes    LIKE ? ESCAPE '\\'
-        OR industry LIKE ? ESCAPE '\\')`
-    );
-    for (let i = 0; i < 7; i++) params.push(like);
+    conditions.push(`(${SEARCH_COLUMNS.map((c) => `${c} LIKE ? ESCAPE '\\'`).join(' OR ')})`);
+    for (let i = 0; i < SEARCH_COLUMNS.length; i++) params.push(like);
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const order = buildOrder(sort, dir);
-  // Cap results only when text-searching (matches prior behavior); the unfiltered
-  // browse view still lists everything.
+  // Cap results only when text-searching; the unfiltered browse view still
+  // lists everything.
   const limit = q.length > 0 ? 'LIMIT 500' : '';
   return db
     .prepare(`SELECT * FROM contacts ${where} ${order} ${limit}`)
@@ -190,27 +184,29 @@ export function contactStats(): ContactStats {
   };
 }
 
-export type SourceCounts = Record<Exclude<ContactSource, 'all'>, number> & { untagged: number };
+export type SourceCount = { tag: string; count: number };
 
-// Per-origin contact counts for the source filter chips.
-export function sourceCounts(): SourceCounts {
+// Every origin tag present in the database with its contact count (most
+// common first), plus how many rows carry no tag.
+export function sourceCounts(): { tags: SourceCount[]; untagged: number } {
   const db = getDb();
-  const count = (tag: string) =>
-    (
-      db
-        .prepare(`SELECT COUNT(*) AS c FROM contacts WHERE (',' || sources || ',') LIKE ?`)
-        .get(`%,${tag},%`) as { c: number }
-    ).c;
+  const rows = db.prepare(`SELECT sources FROM contacts WHERE sources IS NOT NULL`).all() as Array<{
+    sources: string;
+  }>;
+  const tally = new Map<string, number>();
+  for (const r of rows) {
+    for (const t of r.sources.split(',')) {
+      const tag = t.trim();
+      if (tag) tally.set(tag, (tally.get(tag) ?? 0) + 1);
+    }
+  }
+  const tags = [...tally]
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
   const untagged = (db.prepare(`SELECT COUNT(*) AS c FROM contacts WHERE sources IS NULL`).get() as {
     c: number;
   }).c;
-  return {
-    linkedin: count('linkedin'),
-    iphone: count('iphone'),
-    'google-personal': count('google-personal'),
-    'google-work': count('google-work'),
-    untagged,
-  };
+  return { tags, untagged };
 }
 
 export type IndustryCount = { industry: string; count: number };
