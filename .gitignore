@@ -1,0 +1,27 @@
+node_modules
+.next
+out
+dist
+build
+tsconfig.tsbuildinfo
+.env
+.env.local
+.env*.local
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+.DS_Store
+*.log
+.vscode
+.idea
+.gstack/
+data/*.bak*
+
+# Your own contact exports: keep them in imports/ (never committed) or anywhere outside the repo
+imports/*
+!imports/.gitkeep
+/*.vcf
+/*.csv
+/*.json
+LOCAL_NOTES.md

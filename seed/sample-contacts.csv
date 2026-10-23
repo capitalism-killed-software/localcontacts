@@ -1,0 +1,18 @@
+id,full_name,title,company,email,phone,icp_reason,connected_on
+1,Ada Lovelace,Head of Engineering,Analytical Engines Ltd,ada@example.com,+1-202-555-0101,Strong fit: technical buyer at a growing eng org,2024-11-02
+2,Grace Hopper,VP Platform,Cobol Systems,grace@example.com,+1-202-555-0102,Champion persona; owns tooling budget,2024-09-18
+3,Alan Turing,CTO,Bletchley Cloud,alan@example.com,+1-202-555-0103,Decision maker at an ICP-sized company,2025-01-07
+4,Katherine Johnson,Director of Data,Orbital Analytics,katherine@example.com,,Data leader; warm intro available,2024-07-30
+5,Hedy Lamarr,Founder,Spread Spectrum Co,hedy@example.com,+1-202-555-0105,Founder-led; fast sales cycle,
+6,Margaret Hamilton,Head of Reliability,Apollo Software,margaret@example.com,+1-202-555-0106,,2025-02-14
+7,Linus Pauling,Advisor,,linus@example.com,,Light touch; advisory relationship only,
+8,Marie Curie,Chief Scientist,Radium Labs,marie@example.com,+1-202-555-0108,High-value account; multi-seat potential,2024-12-01
+9,山田 太郎,Engineering Manager,Sakura Robotics,taro@example.jp,+81 3-5555-0109,Non-Latin name; checks search and sorting,2024-05-20
+10,José Núñez-Ibáñez,Product Lead,Ibérica Software,jose@example.es,+34 915 555 010,Accented and hyphenated name,2024-08-11
+11,sam.ortega@example.com,,,sam.ortega@example.com,,Display name is an email address (clean:names can derive "Sam Ortega"),
+12,Nadia Okafor,Partner,Okafor Ventures,nadia@example.com,,No phone on file,2025-03-03
+13,Wei Chen,,,,+1 202 555 0113,Phone only; no email or company,
+14,Priya Raman,Senior Staff Engineer and Acting Head of Platform Infrastructure for the Americas Region,Very Long Titles Inc,priya@example.com,+1-202-555-0114,Long title; checks table layout,2024-10-29
+15,Ada Lovelace,Head of Engineering,Analytical Engines Ltd,ADA@EXAMPLE.COM,(202) 555-0101,Duplicate of row 1 with different email case and phone formatting,2024-11-02
+16,Marcus Thompson,Owner,Thompson & Sons Plumbing,marcus@example.com,+1-202-555-0116,Small business; company name has an ampersand,2023-06-15
+
