@@ -11,10 +11,19 @@ The interface is Apple's Address Book from OS X Lion and Mountain Lion, measured
 original and drawn in CSS: the leather book, Groups and Names on the left page, the card on the
 right, the red ribbon that shows and hides the groups. It runs in any browser on any OS.
 
+![The book: groups and names on the left page, a card with its photo on the right](docs/images/book.png)
+
+![The import page: three files checked, one CSV with its columns chosen by hand](docs/images/import.png)
+
+<img src="docs/images/phone.png" alt="On a phone the book shows one page at a time" width="260">
+
+All people in these pictures are made up.
+
 - **[Exporting your contacts](docs/exporting-your-contacts.md)**: step by step for Google, Apple, Microsoft, Proton, LinkedIn, Telegram, Android and more.
 - **[Why this exists](docs/ABOUT.md)**: what it is for, what it refuses to do with your data.
 - **[Deployment guide](docs/DEPLOY.md)**: your laptop, a home server, Docker, reaching it safely from your phone.
 - **[Contributing](CONTRIBUTING.md)**: setup, ground rules, adding an import format.
+- **[Security](SECURITY.md)**: how it protects your contacts, and how to report a problem.
 - **[Testing](docs/TESTING.md)**: a checklist for trying a release on macOS, Windows and Linux.
 - **[Roadmap](docs/ROADMAP.md)**: what is done, what is next.
 
@@ -156,8 +165,9 @@ no network calls. [docs/ABOUT.md](docs/ABOUT.md) spells out the rules.
 ## Test
 
 ```bash
-npm test
+npm test             # unit and integration tests
 npm run typecheck
+npm run test:e2e     # builds the app and runs the browser tests against fake data
 ```
 
 ## Stack
