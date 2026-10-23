@@ -10,6 +10,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "app": "bash scripts/app/launch.sh",
     "import": "tsx scripts/import.ts",
     "clean:names": "tsx scripts/clean-names.ts",
     "merge:dupes": "tsx scripts/merge-dupes.ts",

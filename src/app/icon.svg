@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="leather" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c8945a"/>
+      <stop offset=".06" stop-color="#a06d38"/>
+      <stop offset=".85" stop-color="#6e4420"/>
+      <stop offset="1" stop-color="#3f2410"/>
+    </linearGradient>
+    <linearGradient id="side" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#cf9e64"/>
+      <stop offset=".5" stop-color="#b98045"/>
+      <stop offset="1" stop-color="#926329"/>
+    </linearGradient>
+    <linearGradient id="pages" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#cfc9bb"/>
+      <stop offset=".35" stop-color="#fbf9f3"/>
+      <stop offset="1" stop-color="#d6d0c2"/>
+    </linearGradient>
+    <linearGradient id="ribbon" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e87576"/>
+      <stop offset=".15" stop-color="#d94649"/>
+      <stop offset=".7" stop-color="#b42b2e"/>
+      <stop offset="1" stop-color="#8f1b1d"/>
+    </linearGradient>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .16 0"/>
+    </filter>
+    <filter id="shadow" x="-15%" y="-15%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#000" flood-opacity=".45"/>
+    </filter>
+    <clipPath id="cover"><rect x="48" y="36" width="416" height="440" rx="30"/></clipPath>
+  </defs>
+  <g filter="url(#shadow)">
+    <rect x="48" y="36" width="416" height="440" rx="30" fill="url(#leather)"/>
+  </g>
+  <g clip-path="url(#cover)">
+    <rect x="48" y="36" width="416" height="440" filter="url(#grain)"/>
+    <rect x="48" y="36" width="14" height="440" fill="url(#side)" opacity=".9"/>
+  </g>
+  <rect x="64" y="52" width="384" height="408" rx="20" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="3"/>
+  <rect x="402" y="60" width="46" height="392" rx="5" fill="url(#pages)"/>
+  <g fill="#f6f2e8" stroke="#c9c2b2" stroke-width="2">
+    <rect x="440" y="80" width="18" height="52" rx="4"/>
+    <rect x="440" y="150" width="18" height="52" rx="4"/>
+    <rect x="440" y="220" width="18" height="52" rx="4"/>
+    <rect x="440" y="290" width="18" height="52" rx="4"/>
+    <rect x="440" y="360" width="18" height="52" rx="4"/>
+  </g>
+  <g fill="#f6f1e6" opacity=".94" transform="translate(228 268)">
+    <circle cx="0" cy="-62" r="56"/>
+    <path d="M-118 122c0-76 52-116 118-116s118 40 118 116v18h-236z"/>
+  </g>
+  <path d="M326 36h46v160l-23-20-23 20z" fill="url(#ribbon)"/>
+  <path d="M326 36h46v4h-46z" fill="#f0a0a0" opacity=".6"/>
+</svg>
