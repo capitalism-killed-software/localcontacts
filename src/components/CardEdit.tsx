@@ -58,7 +58,7 @@ export default function CardEdit({
           </div>
           <div className="edit-row">
             <span className="round-btn spacer" />
-            <span className="edit-label">last contacted</span>
+            <span className="edit-label">contacted</span>
             <input name="last_contacted" type="date" defaultValue={v('last_contacted')} aria-label="Last contacted" className="edit-input" />
           </div>
         </div>

@@ -5,7 +5,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['"Lucida Grande"', '"Lucida Sans Unicode"', '"Helvetica Neue"', 'Helvetica', 'Arial', '"Liberation Sans"', '"DejaVu Sans"', 'sans-serif'],
       },
     },
   },

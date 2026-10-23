@@ -49,7 +49,7 @@ export default function CardView({
   const meta: FieldRow[] = [];
   if (contact.industry) meta.push({ key: 'industry', label: 'industry', value: contact.industry });
   if (contact.connected_on) meta.push({ key: 'connected', label: 'connected', value: contact.connected_on });
-  if (contact.last_contacted) meta.push({ key: 'last_contacted', label: 'last contacted', value: contact.last_contacted });
+  if (contact.last_contacted) meta.push({ key: 'last_contacted', label: 'contacted', value: contact.last_contacted });
   if (sources.length) meta.push({ key: 'sources', label: 'sources', value: sources.join(', ') });
 
   const group = (items: FieldRow[]) =>
