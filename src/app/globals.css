@@ -450,6 +450,13 @@ body {
     height: 0;
     z-index: 2;
   }
+  .names-list:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+  .names-list:focus .name-row.is-selected {
+    background: linear-gradient(var(--sel-top), var(--sel-mid) 90%, var(--sel-bottom));
+  }
   .names-list[aria-busy='true'] .names-canvas {
     opacity: 0.6;
   }

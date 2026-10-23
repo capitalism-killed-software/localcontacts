@@ -1,11 +1,11 @@
 'use client';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { NamesPayload } from '@/lib/names-payload';
 import { splitName } from '@/lib/names';
 import { bookHref, contextQs } from '@/lib/urls';
-import { buildLayout, pinnedHeader, revealTop, visibleRange } from '@/lib/window';
+import { buildLayout, NAV_KEYS, pinnedHeader, revealTop, step, visibleRange, type NavKey } from '@/lib/window';
 
 // The names list, fetched once per search/group/sort and kept while cards
 // are opened, so a click sends only the card. Only the rows on screen are in
@@ -15,6 +15,10 @@ const STORE = 'localcontacts.names:';
 
 export default function NamesList({ version, footerStart }: { version: string; footerStart: ReactNode }) {
   const sp = useSearchParams();
+  const router = useRouter();
+  // While a card is being edited, created or imports are open, the keys
+  // belong to the form, not the list.
+  const busyCard = sp.get('edit') === '1' || sp.get('new') === '1' || sp.get('import') === '1';
   const qs = contextQs(new URLSearchParams(sp.toString()));
   const selected = sp.get('new') === '1' ? null : Number(sp.get('id')) || null;
 
@@ -109,6 +113,30 @@ export default function NamesList({ version, footerStart }: { version: string; f
     return () => ro.disconnect();
   }, []);
 
+  // Up and down move between cards, as in Address Book; Home, End and the
+  // page keys jump. Active when focus is in the list or on nothing at all.
+  const nav = useRef({ data, indexOf, selected, qs, viewH });
+  nav.current = { data, indexOf, selected, qs, viewH };
+  useEffect(() => {
+    if (busyCard) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!NAV_KEYS.has(e.key) || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const t = e.target as HTMLElement | null;
+      const inList = !!t && !!listRef.current?.contains(t);
+      const idle = !t || t === document.body || t === document.documentElement;
+      if (!inList && !idle) return;
+      const { data: d, indexOf: idx, selected: sel, qs: q, viewH: h } = nav.current;
+      if (!d || d.rows.length === 0) return;
+      const cur = sel === null ? null : idx.get(sel) ?? null;
+      const next = step(d.rows.length, cur, e.key as NavKey, Math.max(1, Math.floor((h || 500) / 25) - 1));
+      if (next === null || next === cur) return;
+      e.preventDefault();
+      router.replace(bookHref(q, { id: d.rows[next][0] }), { scroll: false });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [busyCard, router]);
+
   const onScroll = () => {
     const el = listRef.current;
     if (!el || frame.current) return;
@@ -150,6 +178,7 @@ export default function NamesList({ version, footerStart }: { version: string; f
             prefetch={false}
             className={`name-row${isSel ? ' is-selected' : ''}`}
             aria-current={isSel ? 'true' : undefined}
+            tabIndex={-1}
             style={{ top }}
           >
             {n.first}
@@ -169,7 +198,14 @@ export default function NamesList({ version, footerStart }: { version: string; f
   const count = data?.count ?? 0;
   return (
     <>
-      <div className="names-list" ref={listRef} onScroll={onScroll} aria-busy={busy || undefined}>
+      <div
+        className="names-list"
+        ref={listRef}
+        onScroll={onScroll}
+        aria-busy={busy || undefined}
+        tabIndex={0}
+        aria-label="Names. Use the up and down arrow keys to move between cards."
+      >
         {pin && (
           <div className="names-pin" aria-hidden="true">
             <div className="name-section" style={{ transform: `translateY(${pin.offset}px)` }}>

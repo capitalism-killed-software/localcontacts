@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLayout, pinnedHeader, revealTop, visibleRange } from '../src/lib/window';
+import { buildLayout, pinnedHeader, revealTop, step, visibleRange } from '../src/lib/window';
 
 // Two sections: A has rows 0-2, B has rows 3-4.
 // Tops: hA 0 | r0 20 | r1 45 | r2 70 | hB 95 | r3 115 | r4 140 | total 165
@@ -62,5 +62,25 @@ describe('revealTop', () => {
   });
   it('needs no header allowance in a flat list', () => {
     expect(revealTop(buildLayout(10, null), 2, 100, 50)).toBe(50);
+  });
+});
+
+describe('step', () => {
+  it('moves and clamps', () => {
+    expect(step(5, 2, 'ArrowDown')).toBe(3);
+    expect(step(5, 4, 'ArrowDown')).toBe(4);
+    expect(step(5, 0, 'ArrowUp')).toBe(0);
+    expect(step(5, 2, 'Home')).toBe(0);
+    expect(step(5, 2, 'End')).toBe(4);
+    expect(step(50, 5, 'PageDown', 20)).toBe(25);
+    expect(step(50, 5, 'PageUp', 20)).toBe(0);
+  });
+  it('starts at the top or bottom when nothing is selected', () => {
+    expect(step(5, null, 'ArrowDown')).toBe(0);
+    expect(step(5, null, 'ArrowUp')).toBe(4);
+    expect(step(5, 99, 'Home')).toBe(0);
+  });
+  it('returns null for an empty list', () => {
+    expect(step(0, null, 'ArrowDown')).toBeNull();
   });
 });

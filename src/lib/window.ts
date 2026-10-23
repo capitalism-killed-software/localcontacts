@@ -100,3 +100,30 @@ export function revealTop(L: Layout, index: number, scrollTop: number, viewH: nu
   if (bottom > scrollTop + viewH) return Math.max(0, bottom - viewH);
   return null;
 }
+
+export type NavKey = 'ArrowDown' | 'ArrowUp' | 'Home' | 'End' | 'PageDown' | 'PageUp';
+export const NAV_KEYS = new Set<string>(['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageDown', 'PageUp']);
+
+// The row a navigation key moves to from `current` (null when nothing is
+// selected), clamped to the list; null when the list is empty.
+export function step(count: number, current: number | null, key: NavKey, page = 10): number | null {
+  if (count <= 0) return null;
+  const last = count - 1;
+  if (current === null || current < 0 || current > last) {
+    return key === 'ArrowUp' || key === 'End' || key === 'PageUp' ? last : 0;
+  }
+  switch (key) {
+    case 'ArrowDown':
+      return Math.min(last, current + 1);
+    case 'ArrowUp':
+      return Math.max(0, current - 1);
+    case 'Home':
+      return 0;
+    case 'End':
+      return last;
+    case 'PageDown':
+      return Math.min(last, current + page);
+    case 'PageUp':
+      return Math.max(0, current - page);
+  }
+}
