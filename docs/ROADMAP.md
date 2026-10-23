@@ -29,6 +29,23 @@ phone of a card were kept.
 A `phone_e164` column was considered and not added: matching normalises phones at import
 time and nothing in the UI needs the canonical form yet.
 
+**The Address Book interface (2026-10-22).** The list, detail and form pages became one book
+at `/`, styled after Address Book on OS X 10.7/10.8 from pixel measurements of the original:
+Groups and Names on the left page, the card on the right, Lion's ribbon toggling the groups,
+A–Z sections with bold surnames, the framed photo square, the label column, the textured
+buttons, and an edit mode with ⊖ ⊕ rows that finally lets the extra emails, phones and links
+be edited by hand. One page at a time below 900px. Old `/contacts/…` links redirect.
+
+**Run it as an app (2026-10-22).** Web app manifest, icons and a no-op service worker so any
+browser can install it; `npm run app` opens a chromeless window and stops the server when it
+closes; `scripts/app/install-desktop.sh` makes a `.app` on macOS and a launcher entry on Linux;
+`launch.cmd` for Windows. CI now runs on Ubuntu, macOS and Windows with Node 22 and 24.
+
+**Measured with 7,000 contacts:** the whole page is 2.1 MB and renders in about 0.3 s on
+localhost; a card click fetches a 1.4 MB server-components payload in about 0.1 s, because the
+names list travels with every card. Fine for one person on one machine; pagination (below)
+is what would change it.
+
 ## What done looks like
 
 ```bash
@@ -66,9 +83,10 @@ rule, test).
 
 ### 4. UI follow-through
 
-Editing of the extra emails, phones and links from the contact form; `npm run export --
---format vcard|csv` from the same normalised model; server-side pagination; later, an
-`/import` page on the same library with a dry-run summary and an Apply button.
+`npm run export -- --format vcard|csv` from the same normalised model; server-side pagination
+or a virtualised names list (see the 7,000-row numbers above); a photo on the card; later, an
+`/import` page on the same library with a dry-run summary and an Apply button. Editing of the
+extra emails, phones and links is done.
 
 ### 5. Housekeeping
 

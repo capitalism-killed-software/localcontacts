@@ -114,7 +114,45 @@ With Docker, run the same inside the container
 (`docker compose exec localcontacts sqlite3 …`) or stop it first. Restoring is copying the
 file back.
 
-## 6. Settings
+## 6. Install it as an app
+
+localcontacts is a web page, so any browser can install it with an icon of its own once the
+server is running. Two launchers make the server part painless.
+
+**A window of its own (macOS, Linux).** `npm run app`, or `bash scripts/app/launch.sh`,
+builds the app the first time, starts the server (port 3000, or `PORT`), opens it in a
+chromeless window in the first of Chrome, Chromium, Edge, Brave or Vivaldi it finds, and stops
+the server when you close that window. With none of those installed it opens your default
+browser and keeps the server running until Ctrl-C.
+
+**An icon in your applications.** `bash scripts/app/install-desktop.sh` writes
+`~/Applications/localcontacts.app` on a Mac (with the icon, built with `sips` and `iconutil`)
+or `~/.local/share/applications/localcontacts.desktop` on Linux. Both run the launcher above.
+Re-run it after moving the repo; it prints how to remove what it made. The macOS bundle was
+written from Apple's documentation and has not yet been run on a Mac by the author; if it
+misbehaves, open an issue with the message.
+
+**Windows.** `scripts\app\launch.cmd` starts the server and opens the window with Edge or
+Chrome. For a Start Menu icon use the browser's own install, below.
+
+**Install from the browser.** With the page open:
+
+| Browser | Where |
+|---|---|
+| Chrome, Edge, Brave on any desktop | the install icon at the right of the address bar, or the browser menu → Install |
+| Safari on macOS 14 or newer | File → Add to Dock |
+| Chrome on Android | menu → Install app, or the prompt it shows |
+| Safari on iPhone and iPad | Share → Add to Home Screen |
+
+The install uses the web app manifest and icons the server provides. On a phone the server
+must be reachable over HTTPS for a real standalone install (Tailscale Serve or the Caddy setup
+in section 3); over plain `http://` the phone adds a bookmark-style shortcut instead.
+
+Why there is no APK or App Store app: the app is a Node server with a SQLite file on disk.
+Phones cannot run that, so an installed web app on a phone is a window onto the server on your
+computer or home server, which is exactly what section 3 sets up.
+
+## 7. Settings
 
 All optional, all environment variables:
 
