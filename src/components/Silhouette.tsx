@@ -1,3 +1,5 @@
+import PhotoImg from './PhotoImg';
+
 // The default card photo: a white square with a faint grey bust, framed.
 export function Bust() {
   return (
@@ -21,8 +23,7 @@ export function CardPhoto({ id, photoType, version }: { id: number; photoType: s
   if (!photoType) return <Silhouette />;
   return (
     <span className="photo has-image">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/api/photo/${id}?v=${encodeURIComponent(version)}`} alt="" width={48} height={48} />
+      <PhotoImg key={version} src={`/api/photo/${id}?v=${encodeURIComponent(version)}`} />
     </span>
   );
 }

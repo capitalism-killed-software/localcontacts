@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import PhotoImg from './PhotoImg';
 import { Bust } from './Silhouette';
 import { sniffImage } from '@/lib/photo';
 
@@ -49,8 +50,7 @@ export default function PhotoPicker({ current }: { current: string | null }) {
   return (
     <div className="photo-picker">
       <label className={`photo photo-editing${preview ? ' has-image' : ''}`} title="Choose a photo">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        {preview ? <img src={preview} alt="" width={48} height={48} /> : <Bust />}
+        {preview ? <PhotoImg key={preview} src={preview} /> : <Bust />}
         <input
           ref={input}
           type="file"
