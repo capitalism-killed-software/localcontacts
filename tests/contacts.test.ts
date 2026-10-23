@@ -117,6 +117,35 @@ describe('updateContact', () => {
   });
 });
 
+describe('alternate emails, phones and links', () => {
+  it('create writes the lists, normalised', () => {
+    const c = createContact({
+      full_name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      alt_emails: ' ada.home@example.com \n\n ada.work@example.com ',
+      alt_phones: '',
+      urls: 'https://example.com/ada',
+    });
+    expect(c.alt_emails).toBe('ada.home@example.com\nada.work@example.com');
+    expect(c.alt_phones).toBeNull();
+    expect(c.urls).toBe('https://example.com/ada');
+  });
+
+  it('update leaves the lists alone when the keys are absent', () => {
+    const c = createContact({ full_name: 'Ada', alt_emails: 'x@example.com', urls: 'https://a.example' });
+    const u = updateContact(c.id, { full_name: 'Ada L' })!;
+    expect(u.alt_emails).toBe('x@example.com');
+    expect(u.urls).toBe('https://a.example');
+  });
+
+  it('update clears a list when given null and replaces it when given text', () => {
+    const c = createContact({ full_name: 'Ada', alt_emails: 'x@example.com', alt_phones: '+1 202 555 0101' });
+    const u = updateContact(c.id, { full_name: 'Ada', alt_emails: null, alt_phones: '+1 202 555 0199\n+1 202 555 0198' })!;
+    expect(u.alt_emails).toBeNull();
+    expect(u.alt_phones).toBe('+1 202 555 0199\n+1 202 555 0198');
+  });
+});
+
 describe('deleteContact / countContacts', () => {
   it('deletes an existing contact and reports the change', () => {
     const c = createContact({ full_name: 'Temp Person' });

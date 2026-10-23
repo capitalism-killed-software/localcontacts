@@ -19,14 +19,18 @@ export type Contact = {
   updated_at: string;
 };
 
-// What the forms edit. The import-managed lists (alt_emails, alt_phones,
-// urls, sources) are left alone by create/update.
+// What the forms edit. The three newline-separated lists are written only
+// when the key is present: an absent key leaves the stored value alone, null
+// clears it. `sources` is import-managed and never touched here.
 export type ContactInput = {
   full_name: string;
   title?: string | null;
   company?: string | null;
   email?: string | null;
   phone?: string | null;
+  alt_emails?: string | null;
+  alt_phones?: string | null;
+  urls?: string | null;
   notes?: string | null;
   connected_on?: string | null;
   last_contacted?: string | null;
@@ -38,6 +42,15 @@ const nullIfBlank = (v: string | null | undefined): string | null => {
   const t = v.trim();
   return t.length === 0 ? null : t;
 };
+
+// A newline-separated list: trimmed, blanks dropped, null when empty.
+const normalizeLines = (v: string | null | undefined): string | null => {
+  if (v === null || v === undefined) return null;
+  const lines = v.split('\n').map((l) => l.trim()).filter(Boolean);
+  return lines.length ? lines.join('\n') : null;
+};
+
+const LIST_COLUMNS = ['alt_emails', 'alt_phones', 'urls'] as const;
 
 // Default ordering: rows with a date first (DESC), then nulls, then by name.
 const DEFAULT_ORDER = `(connected_on IS NULL), connected_on DESC, full_name ASC`;
@@ -241,8 +254,9 @@ export function getContact(id: number): Contact | null {
 export function createContact(input: ContactInput): Contact {
   const db = getDb();
   const stmt = db.prepare(
-    `INSERT INTO contacts (full_name, title, company, email, phone, notes, connected_on, last_contacted, industry)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO contacts (full_name, title, company, email, phone, alt_emails, alt_phones, urls,
+                           notes, connected_on, last_contacted, industry)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const info = stmt.run(
     input.full_name.trim(),
@@ -250,6 +264,9 @@ export function createContact(input: ContactInput): Contact {
     nullIfBlank(input.company),
     nullIfBlank(input.email),
     nullIfBlank(input.phone),
+    normalizeLines(input.alt_emails),
+    normalizeLines(input.alt_phones),
+    normalizeLines(input.urls),
     nullIfBlank(input.notes),
     nullIfBlank(input.connected_on),
     nullIfBlank(input.last_contacted),
@@ -262,20 +279,11 @@ export function updateContact(id: number, input: ContactInput): Contact | null {
   const db = getDb();
   const existing = getContact(id);
   if (!existing) return null;
-  db.prepare(
-    `UPDATE contacts
-       SET full_name    = ?,
-           title        = ?,
-           company      = ?,
-           email        = ?,
-           phone        = ?,
-           notes        = ?,
-           connected_on = ?,
-           last_contacted = ?,
-           industry     = ?,
-           updated_at   = datetime('now')
-     WHERE id = ?`
-  ).run(
+  const sets = [
+    'full_name = ?', 'title = ?', 'company = ?', 'email = ?', 'phone = ?',
+    'notes = ?', 'connected_on = ?', 'last_contacted = ?', 'industry = ?',
+  ];
+  const params: Array<string | null | number> = [
     input.full_name.trim(),
     nullIfBlank(input.title),
     nullIfBlank(input.company),
@@ -285,8 +293,15 @@ export function updateContact(id: number, input: ContactInput): Contact | null {
     nullIfBlank(input.connected_on),
     nullIfBlank(input.last_contacted),
     nullIfBlank(input.industry),
-    id
-  );
+  ];
+  for (const col of LIST_COLUMNS) {
+    if (input[col] !== undefined) {
+      sets.push(`${col} = ?`);
+      params.push(normalizeLines(input[col]));
+    }
+  }
+  params.push(id);
+  db.prepare(`UPDATE contacts SET ${sets.join(', ')}, updated_at = datetime('now') WHERE id = ?`).run(...params);
   return getContact(id);
 }
 

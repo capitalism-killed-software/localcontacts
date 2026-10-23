@@ -67,7 +67,7 @@ function parseArgs(argv: string[]) {
     else if (a.startsWith('--')) {
       console.error(`Unknown option ${a}\n${USAGE}`);
       process.exit(1);
-    } else files.push({ path: resolve(a.replace(/^~(?=\/|$)/, process.env.HOME ?? '~')), source, map });
+    } else files.push({ path: resolve(a.replace(/^~(?=[/\\]|$)/, process.env.HOME ?? process.env.USERPROFILE ?? '~')), source, map });
   }
   if (files.length === 0) {
     console.error(USAGE);

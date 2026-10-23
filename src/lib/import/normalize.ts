@@ -46,7 +46,7 @@ export const nameKey = (name: string): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
-export const NO_NAME = '(no name)';
+export { NO_NAME } from '../constants';
 
 export function dedupeBy<T>(items: T[], key: (t: T) => string | null): T[] {
   const seen = new Set<string>();

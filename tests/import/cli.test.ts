@@ -9,7 +9,8 @@ import { fixturePath } from './helpers';
 // Runs the real CLI (scripts/import.ts via tsx) against a temp database.
 
 const ROOT = process.cwd();
-const TSX = join(ROOT, 'node_modules', '.bin', 'tsx');
+// Run tsx through node rather than node_modules/.bin, which is a .cmd shim on Windows.
+const TSX_CLI = join(ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs');
 
 let workdir: string;
 let dbPath: string;
@@ -27,7 +28,7 @@ type Run = { status: number; out: string };
 
 function run(...args: string[]): Run {
   try {
-    const out = execFileSync(TSX, ['scripts/import.ts', ...args], {
+    const out = execFileSync(process.execPath, [TSX_CLI, 'scripts/import.ts', ...args], {
       cwd: ROOT,
       env: { ...process.env, CONTACTS_DB_PATH: dbPath },
       encoding: 'utf-8',
