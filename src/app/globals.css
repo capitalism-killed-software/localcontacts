@@ -417,10 +417,35 @@ body {
     -webkit-appearance: none;
   }
   .names-list {
+    position: relative;
     margin-top: 7px;
     background: #fff;
     border: 1px solid #bebebe;
     border-top-color: #8e8e8e;
+  }
+  /* Rows and headers are placed absolutely in a canvas as tall as the whole
+     list; only the ones on screen exist. */
+  .names-canvas {
+    position: relative;
+  }
+  .names-canvas .name-row,
+  .names-canvas .name-section {
+    position: absolute;
+    left: 0;
+    right: 0;
+  }
+  /* The current letter, pinned to the top and pushed up by the next one. */
+  .names-pin {
+    position: sticky;
+    top: 0;
+    height: 0;
+    z-index: 2;
+  }
+  .names-list[aria-busy='true'] .names-canvas {
+    opacity: 0.6;
+  }
+  .names-retry {
+    margin-left: 6px;
   }
   .names-empty {
     margin: 0;
@@ -428,9 +453,7 @@ body {
     color: var(--placeholder);
   }
   .name-section {
-    position: sticky;
-    top: 0;
-    z-index: 1;
+    box-sizing: border-box;
     height: 20px;
     line-height: 18px;
     padding-left: 6px;
@@ -441,11 +464,12 @@ body {
     border-bottom: 1px solid #d5d7d8;
     text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
   }
-  .name-section-group:first-child .name-section {
+  .name-section.is-first {
     border-top: 0;
   }
   .name-row {
     display: block;
+    box-sizing: border-box;
     height: 25px;
     line-height: 25px;
     padding: 0 6px;

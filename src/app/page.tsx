@@ -9,70 +9,23 @@ import {
   contactStats,
   getContact,
   industryCounts,
-  listContacts,
+  listVersion,
   sourceCounts,
-  type ContactFilter,
-  type SortDir,
-  type SortKey,
 } from '@/lib/contacts';
+import { VIEW_SORTS, parseBook } from '@/lib/context';
 import { buildGroups, type ContextOverride } from '@/lib/groups';
-import { sectionize, splitName } from '@/lib/names';
 import { bookHref, contextQs } from '@/lib/urls';
 
 export const dynamic = 'force-dynamic';
 
-const FILTER_KEYS = new Set<ContactFilter>([
-  'all', 'email', 'phone', 'email_phone', 'no_email', 'no_phone', 'has_notes', 'name_is_email',
-]);
-
-// How the names list is ordered. The lib sorts by full name; "last" is
-// re-sorted by surname in JS.
-type ViewSort = 'last' | 'first' | 'company' | 'connected' | 'last_contacted';
-const VIEW_SORTS: Array<{ value: ViewSort; label: string }> = [
-  { value: 'last', label: 'Last name' },
-  { value: 'first', label: 'First name' },
-  { value: 'company', label: 'Company' },
-  { value: 'connected', label: 'Date connected' },
-  { value: 'last_contacted', label: 'Last contacted' },
-];
-const VIEW_SORT_KEYS = new Set<string>(VIEW_SORTS.map((s) => s.value));
-
-function mapSort(v: ViewSort, dir: 'desc' | null): [SortKey, SortDir] {
-  switch (v) {
-    case 'company':
-      return ['company', dir ?? 'asc'];
-    case 'connected':
-      return ['connected', 'desc'];
-    case 'last_contacted':
-      return ['last_contacted', 'desc'];
-    default:
-      return ['name', 'asc'];
-  }
-}
-
 type Params = Record<string, string | string[] | undefined>;
-const str = (v: string | string[] | undefined): string => (Array.isArray(v) ? v[0] ?? '' : v ?? '').trim();
 
 export default async function HomePage(props: { searchParams: Promise<Params> }) {
   const searchParams = await props.searchParams;
-  const q = str(searchParams.q);
-  const rawFilter = str(searchParams.filter) as ContactFilter;
-  const filter: ContactFilter = FILTER_KEYS.has(rawFilter) ? rawFilter : 'all';
   const srcCounts = sourceCounts();
   const knownTags = new Set(srcCounts.tags.map((t) => t.tag));
-  const rawSource = str(searchParams.source) || 'all';
-  const source = rawSource === 'all' || rawSource === 'untagged' || knownTags.has(rawSource) ? rawSource : 'all';
-  const industry = str(searchParams.industry) || 'all';
-  const rawSort = str(searchParams.sort);
-  const viewSort: ViewSort = VIEW_SORT_KEYS.has(rawSort) ? (rawSort as ViewSort) : 'last';
-  const dir = str(searchParams.dir) === 'desc' ? 'desc' : null;
-  const idNum = Number(str(searchParams.id));
-  const id = Number.isFinite(idNum) && idNum > 0 ? idNum : null;
-  const isNew = str(searchParams.new) === '1';
-  const edit = !isNew && str(searchParams.edit) === '1';
+  const { q, filter, source, industry, viewSort, dir, id, isNew, edit } = parseBook(searchParams, { knownTags });
 
-  const [libSort, libDir] = mapSort(viewSort, dir);
-  const rows = listContacts(q, filter, libSort, libDir, source, industry);
   const stats = contactStats();
   const indCounts = industryCounts();
   const selected = !isNew && id ? getContact(id) : null;
@@ -84,8 +37,6 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
     bookHref(contextQs({ ...context, ...over }), { id: selId });
 
   const groups = buildGroups(stats, srcCounts, indCounts, { filter, source, industry });
-  const sections = viewSort === 'last' || viewSort === 'first' ? sectionize(rows, viewSort) : null;
-  const flat = sections ? null : rows.map((c) => ({ contact: c, ...splitName(c.full_name) }));
 
   const cardMode: CardMode = isNew ? 'new' : !id ? 'empty' : !selected ? 'missing' : edit ? 'edit' : 'view';
   const view = isNew || id ? 'card' : 'list';
@@ -120,16 +71,11 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
       groups={<GroupsPane all={groups.all} sections={groups.sections} hrefFor={(item) => hrefWith(item.over)} />}
       names={
         <NamesPane
-          sections={sections}
-          flat={flat}
-          selectedId={selId}
-          hrefFor={(cid) => bookHref(qs, { id: cid })}
           search={<SearchBar />}
           groupsSelect={groupsSelect}
           sortSelect={sortSelect}
-          count={rows.length}
-          truncated={q.length > 0 && rows.length >= 500}
           newHref={bookHref(qs, { new: true })}
+          version={listVersion()}
         />
       }
       card={
