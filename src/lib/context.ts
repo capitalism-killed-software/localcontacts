@@ -28,6 +28,7 @@ export type BookParams = {
   dir: 'desc' | null;
   id: number | null;
   isNew: boolean;
+  isImport: boolean;
   edit: boolean;
 };
 
@@ -54,6 +55,7 @@ export function parseBook(raw: RawParams, opts: { knownTags?: Set<string> } = {}
   const rawSort = get('sort');
   const idNum = Number(get('id'));
   const isNew = get('new') === '1';
+  const isImport = !isNew && get('import') === '1';
   const id = Number.isFinite(idNum) && idNum > 0 ? idNum : null;
   return {
     q: get('q'),
@@ -64,7 +66,8 @@ export function parseBook(raw: RawParams, opts: { knownTags?: Set<string> } = {}
     dir: get('dir') === 'desc' ? 'desc' : null,
     id,
     isNew,
-    edit: !isNew && id !== null && get('edit') === '1',
+    isImport,
+    edit: !isNew && !isImport && id !== null && get('edit') === '1',
   };
 }
 

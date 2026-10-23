@@ -35,12 +35,14 @@ export function contextQs(input: URLSearchParams | ContextInput): string {
   return p.toString();
 }
 
-export type Selection = { id?: number | null; edit?: boolean; new?: boolean };
+export type Selection = { id?: number | null; edit?: boolean; new?: boolean; import?: boolean };
 
 export function bookHref(qs: string, sel: Selection = {}): string {
   const p = new URLSearchParams(qs);
   if (sel.new) {
     p.set('new', '1');
+  } else if (sel.import) {
+    p.set('import', '1');
   } else if (sel.id != null && Number.isFinite(sel.id) && sel.id > 0) {
     p.set('id', String(sel.id));
     if (sel.edit) p.set('edit', '1');

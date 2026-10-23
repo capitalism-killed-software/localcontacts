@@ -3,9 +3,10 @@ import type { Contact } from '@/lib/contacts';
 import CardEdit, { CARD_FORM_ID } from './CardEdit';
 import CardView from './CardView';
 import DeleteButton from './DeleteButton';
+import ImportPanel from './ImportPanel';
 import Silhouette from './Silhouette';
 
-export type CardMode = 'empty' | 'missing' | 'view' | 'edit' | 'new';
+export type CardMode = 'empty' | 'missing' | 'view' | 'edit' | 'new' | 'import';
 
 type Action = (fd: FormData) => void | Promise<void>;
 
@@ -13,6 +14,7 @@ type Action = (fd: FormData) => void | Promise<void>;
 // Book's Edit / Done bar.
 export default function CardPane({
   mode,
+  importHref,
   contact,
   listHref,
   viewHref,
@@ -22,6 +24,7 @@ export default function CardPane({
   remove,
 }: {
   mode: CardMode;
+  importHref: string;
   contact: Contact | null;
   listHref: string;
   viewHref: string;
@@ -74,6 +77,14 @@ export default function CardPane({
         </>
       );
       break;
+    case 'import':
+      body = <ImportPanel doneHref={listHref} />;
+      footer = (
+        <Link href={listHref} scroll={false} prefetch={false} className="btn">
+          Close
+        </Link>
+      );
+      break;
     case 'missing':
       body = (
         <div className="card card-blank">
@@ -90,6 +101,9 @@ export default function CardPane({
         <div className="card card-blank">
           <Silhouette />
           <p className="card-blank-text">No Card Selected</p>
+          <Link href={importHref} scroll={false} prefetch={false} className="quiet-link">
+            Import contacts…
+          </Link>
         </div>
       );
   }

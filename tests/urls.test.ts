@@ -25,6 +25,7 @@ describe('bookHref', () => {
     expect(bookHref('q=ada', { id: 7 })).toBe('/?q=ada&id=7');
     expect(bookHref('', { id: 7, edit: true })).toBe('/?id=7&edit=1');
     expect(bookHref('source=linkedin', { new: true })).toBe('/?source=linkedin&new=1');
+    expect(bookHref('q=ada', { import: true })).toBe('/?q=ada&import=1');
   });
   it('new wins over id, and bad ids are ignored', () => {
     expect(bookHref('', { id: 7, new: true })).toBe('/?new=1');

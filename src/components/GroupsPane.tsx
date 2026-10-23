@@ -6,10 +6,12 @@ export default function GroupsPane({
   all,
   sections,
   hrefFor,
+  importHref,
 }: {
   all: GroupItem;
   sections: GroupSection[];
   hrefFor: (item: GroupItem) => string;
+  importHref: string;
 }) {
   const row = (item: GroupItem, bold = false) => (
     <Link
@@ -34,6 +36,11 @@ export default function GroupsPane({
             {sec.items.map((item) => row(item))}
           </section>
         ))}
+      </div>
+      <div className="groups-footer">
+        <Link href={importHref} scroll={false} prefetch={false} className="btn" title="Import contacts from files">
+          Import…
+        </Link>
       </div>
     </nav>
   );

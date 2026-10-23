@@ -24,22 +24,33 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
   const searchParams = await props.searchParams;
   const srcCounts = sourceCounts();
   const knownTags = new Set(srcCounts.tags.map((t) => t.tag));
-  const { q, filter, source, industry, viewSort, dir, id, isNew, edit } = parseBook(searchParams, { knownTags });
+  const { q, filter, source, industry, viewSort, dir, id, isNew, isImport, edit } = parseBook(searchParams, { knownTags });
 
   const stats = contactStats();
   const indCounts = industryCounts();
-  const selected = !isNew && id ? getContact(id) : null;
+  const selected = !isNew && !isImport && id ? getContact(id) : null;
 
   const context = { q, filter, source, industry, sort: viewSort, dir: dir ?? '' };
   const qs = contextQs(context);
-  const selId = isNew ? null : id;
+  const selId = isNew || isImport ? null : id;
+  const importHref = bookHref(qs, { import: true });
   const hrefWith = (over: ContextOverride & { sort?: string }) =>
     bookHref(contextQs({ ...context, ...over }), { id: selId });
 
   const groups = buildGroups(stats, srcCounts, indCounts, { filter, source, industry });
 
-  const cardMode: CardMode = isNew ? 'new' : !id ? 'empty' : !selected ? 'missing' : edit ? 'edit' : 'view';
-  const view = isNew || id ? 'card' : 'list';
+  const cardMode: CardMode = isNew
+    ? 'new'
+    : isImport
+      ? 'import'
+      : !id
+        ? 'empty'
+        : !selected
+          ? 'missing'
+          : edit
+            ? 'edit'
+            : 'view';
+  const view = isNew || isImport || id ? 'card' : 'list';
 
   const activeGroupKey = groups.all.active
     ? groups.all.key
@@ -49,7 +60,10 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
       className="groups-select"
       ariaLabel="Group"
       value={activeGroupKey}
-      options={[{ value: groups.all.key, label: groups.all.label, href: hrefWith(groups.all.over) }]}
+      options={[
+        { value: groups.all.key, label: groups.all.label, href: hrefWith(groups.all.over) },
+        { value: 'import', label: 'Import contacts…', href: importHref },
+      ]}
       groups={groups.sections.map((s) => ({
         label: s.title,
         options: s.items.map((i) => ({ value: i.key, label: `${i.label} (${i.count.toLocaleString()})`, href: hrefWith(i.over) })),
@@ -68,7 +82,7 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
   return (
     <Book
       view={view}
-      groups={<GroupsPane all={groups.all} sections={groups.sections} hrefFor={(item) => hrefWith(item.over)} />}
+      groups={<GroupsPane all={groups.all} sections={groups.sections} hrefFor={(item) => hrefWith(item.over)} importHref={importHref} />}
       names={
         <NamesPane
           search={<SearchBar />}
@@ -81,6 +95,7 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
       card={
         <CardPane
           mode={cardMode}
+          importHref={importHref}
           contact={selected}
           listHref={bookHref(qs)}
           viewHref={bookHref(qs, { id })}

@@ -186,7 +186,16 @@ export default function NamesList({ version, footerStart }: { version: string; f
             </button>
           </p>
         )}
-        {data && count === 0 && <p className="names-empty">No cards</p>}
+        {data && count === 0 && (
+          <p className="names-empty">
+            No cards.{' '}
+            {!qs && (
+              <Link href={bookHref(qs, { import: true })} scroll={false} prefetch={false} className="names-import">
+                Import contacts…
+              </Link>
+            )}
+          </p>
+        )}
         <noscript>
           <p className="names-empty">The names list needs JavaScript.</p>
         </noscript>

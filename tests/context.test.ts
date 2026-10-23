@@ -4,7 +4,7 @@ import { listArgs, parseBook } from '../src/lib/context';
 describe('parseBook', () => {
   it('reads every parameter from URLSearchParams or a record', () => {
     const a = parseBook(new URLSearchParams('q= ada &filter=no_email&source=linkedin&industry=Legal&sort=company&dir=desc&id=7&edit=1'));
-    expect(a).toEqual({ q: 'ada', filter: 'no_email', source: 'linkedin', industry: 'Legal', viewSort: 'company', dir: 'desc', id: 7, isNew: false, edit: true });
+    expect(a).toEqual({ q: 'ada', filter: 'no_email', source: 'linkedin', industry: 'Legal', viewSort: 'company', dir: 'desc', id: 7, isNew: false, isImport: false, edit: true });
     const b = parseBook({ q: ['x', 'y'], id: '3' });
     expect(b.q).toBe('x');
     expect(b.id).toBe(3);
@@ -16,6 +16,10 @@ describe('parseBook', () => {
   it('limits sources to known tags when told them', () => {
     expect(parseBook({ source: 'proton' }, { knownTags: new Set(['linkedin']) }).source).toBe('all');
     expect(parseBook({ source: 'untagged' }, { knownTags: new Set() }).source).toBe('untagged');
+  });
+  it('import replaces the card and turns off edit', () => {
+    expect(parseBook({ import: '1', id: '4', edit: '1' })).toMatchObject({ isImport: true, edit: false });
+    expect(parseBook({ import: '1', new: '1' })).toMatchObject({ isNew: true, isImport: false });
   });
   it('new wins over edit', () => {
     expect(parseBook({ new: '1', id: '4', edit: '1' })).toMatchObject({ isNew: true, edit: false });
