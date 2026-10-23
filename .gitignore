@@ -23,5 +23,5 @@ imports/*
 !imports/.gitkeep
 /*.vcf
 /*.csv
-/*.json
+/result.json
 LOCAL_NOTES.md
