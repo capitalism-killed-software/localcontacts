@@ -14,10 +14,13 @@ export default function SearchBar() {
 
   useEffect(() => {
     const t = setTimeout(() => {
-      const next = new URLSearchParams(params.toString());
+      // Read the address as it is now, not as it was when typing started: a
+      // group or card clicked in the meantime must not be undone.
+      const current = new URLSearchParams(window.location.search);
+      const next = new URLSearchParams(current.toString());
       if (value.trim()) next.set('q', value);
       else next.delete('q');
-      if (next.toString() === params.toString()) return;
+      if (next.toString() === current.toString()) return;
       const qs = next.toString();
       startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
     }, 150);
