@@ -29,6 +29,10 @@ describe('detect', () => {
     expect(detect('Name,Email\n')).toBe('generic-csv');
   });
 
+  it('reads a CSV whose first data row has a multi-line quoted cell', () => {
+    expect(detect('Name,Notes\n"Ada Lovelace","line one\nline two"\nGrace,x\n')).toBe('generic-csv');
+  });
+
   it('ignores a UTF-8 byte-order mark', () => {
     expect(detect('﻿BEGIN:VCARD\nEND:VCARD')).toBe('vcard');
   });

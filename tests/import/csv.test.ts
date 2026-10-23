@@ -105,6 +105,11 @@ describe('generic CSV', () => {
     expect(() => parseText(text, 'generic-csv', { map: parseFieldMap('full_name=Nope') })).toThrow(/not found/);
   });
 
+  it('reads numbered URL columns', () => {
+    const { contacts } = parseText('Name,URL,URL 2\nAda,https://a.example,https://b.example\n', 'generic-csv');
+    expect(contacts[0].urls).toEqual(['https://a.example', 'https://b.example']);
+  });
+
   it('refuses a CSV with no recognisable name column', () => {
     expect(() => parseText('Foo,Bar\n1,2\n', 'generic-csv')).toThrow(/could not find a name column/);
   });

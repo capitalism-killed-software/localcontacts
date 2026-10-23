@@ -43,7 +43,9 @@ const GUESS: Record<MappableField, (h: string) => boolean> = {
     ['company', 'company name', 'organization', 'organisation', 'organization name', 'org', 'employer', 'account'].includes(h),
   title: (h) => ['title', 'job title', 'jobtitle', 'position', 'role', 'job'].includes(h),
   notes: (h) => ['notes', 'note', 'comments', 'comment', 'description', 'icp reason'].includes(h),
-  url: (h) => ['url', 'website', 'web page', 'web', 'linkedin', 'linkedin url', 'profile', 'profile url', 'link'].includes(h),
+  url: (h) =>
+    ['url', 'website', 'web page', 'web', 'linkedin', 'linkedin url', 'profile', 'profile url', 'link'].includes(h) ||
+    /^(url|website|link) \d+$/.test(h),
   connected_on: (h) => ['connected on', 'connected', 'date', 'created', 'created at', 'added', 'date added', 'since'].includes(h),
 };
 

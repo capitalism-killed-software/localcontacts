@@ -65,6 +65,27 @@ describe('vCard parser', () => {
     expect(contacts[0].name).toBe('(no name)');
   });
 
+  it('unescapes semicolons, commas and backslashes in one pass', () => {
+    const { contacts } = parseText(
+      String.raw`BEGIN:VCARD
+VERSION:3.0
+N:Smith\, Jr.;Mary\;Ann;;;
+ORG:AT&T\; Labs;Research
+NOTE:path C:\\new\nline two
+END:VCARD
+`,
+      'vcard'
+    );
+    expect(contacts[0].name).toBe('Mary;Ann Smith, Jr.');
+    expect(contacts[0].org).toBe('AT&T; Labs');
+    expect(contacts[0].notes).toBe(String.raw`path C:\new` + '\nline two');
+    const n = parseText(String.raw`BEGIN:VCARD
+N:Back\\;Slash;;;
+END:VCARD
+`, 'vcard').contacts[0];
+    expect(n.name).toBe('Slash Back\\');
+  });
+
   it('dedupes the same email in different case within a card', () => {
     const { contacts } = parseText(
       'BEGIN:VCARD\nFN:X\nEMAIL:A@example.com\nEMAIL;TYPE=PREF:a@example.com\nEND:VCARD\n',

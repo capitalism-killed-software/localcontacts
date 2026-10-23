@@ -124,11 +124,31 @@ function decodeQP(s: string, charset: string): string {
   }
 }
 
+// RFC 6350 text values: \\ \; \, and \n (or \N). One pass, so an escaped
+// backslash followed by "n" stays a backslash and an "n".
 const unescapeText = (v: string): string =>
-  v.replace(/\\n/gi, '\n').replace(/\\,/g, ',').replace(/\;/g, ';').replace(/\\\\/g, '\\');
+  v.replace(/\\([\\;,nN])/g, (_, c: string) => (c === 'n' || c === 'N' ? '\n' : c));
 
-const splitComponents = (v: string): string[] =>
-  v.split(/(?<!\\);/).map((c) => unescapeText(c).trim());
+// Split a structured value (N, ORG) on unescaped semicolons, then unescape
+// each part. A scanner rather than a regex, so an escaped backslash before ";" still splits but an escaped ";" does not.
+function splitComponents(v: string): string[] {
+  const parts: string[] = [];
+  let cur = '';
+  for (let i = 0; i < v.length; i++) {
+    const c = v[i];
+    if (c === '\\' && i + 1 < v.length) {
+      cur += c + v[i + 1];
+      i++;
+    } else if (c === ';') {
+      parts.push(cur);
+      cur = '';
+    } else {
+      cur += c;
+    }
+  }
+  parts.push(cur);
+  return parts.map((part) => unescapeText(part).trim());
+}
 
 // The property's text, or null when it is binary (base64) and not wanted.
 function decodeValue(p: Prop): string | null {

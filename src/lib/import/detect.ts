@@ -45,9 +45,15 @@ export function csvHeader(text: string): string[] {
 function looksTabular(text: string): boolean {
   const cols = csvHeader(text);
   if (cols.filter((c) => c.length > 0).length < 2) return false;
-  const second = csvBody(text).split(/\r?\n/).slice(1).find((l) => l.trim().length > 0);
-  if (second === undefined) return true;
-  return parseLine(second).length >= 2;
+  // Read the first two records, not lines: a quoted cell may span lines.
+  let records: string[][];
+  try {
+    records = parse(csvBody(text), { to: 2, relax_quotes: true, relax_column_count: true, skip_empty_lines: true }) as string[][];
+  } catch {
+    return false;
+  }
+  if (records.length < 2) return true;
+  return records[1].length >= 2;
 }
 
 // Decide the format from the content, never from the file extension.
