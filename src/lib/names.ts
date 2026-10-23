@@ -70,3 +70,20 @@ export function sectionize<T extends { full_name: string }>(contacts: T[], mode:
   if (hash.length) sections.push({ letter: '#', items: hash });
   return sections;
 }
+
+// Type-to-select, as in Address Book: the first row whose sort key starts
+// with what was typed, or failing that the first one after it, so typing
+// "ma" lands at the start of the Ms even without a "Ma…". `mode` is the
+// list's sort; for sorts other than by name the whole name is matched.
+export function typeAheadIndex(names: string[], typed: string, mode: NameSortMode | 'other'): number | null {
+  const want = fold(typed.trim());
+  if (!want || names.length === 0) return null;
+  const key = (n: string) => (mode === 'other' ? fold(n) : nameSortKey(n, mode).join(' '));
+  let after: number | null = null;
+  for (let i = 0; i < names.length; i++) {
+    const k = key(names[i]);
+    if (k.startsWith(want)) return i;
+    if (after === null && mode !== 'other' && k > want) after = i;
+  }
+  return after;
+}

@@ -110,7 +110,8 @@ Before writing, both the import page and `--apply` save a copy of the database t
 ## Using the book
 
 - **Arrow keys** move between cards, as in Address Book: up and down, Home and End, Page Up
-  and Page Down. They work when the names list has focus or nothing does.
+  and Page Down. They work when the names list has focus or nothing does. With the list focused,
+  typing the start of a name jumps to it.
 - **Photos**: imported from vCards; in edit mode click the photo square to choose one (JPEG,
   PNG, GIF or WebP, up to 2 MB) or press remove.
 - **The ribbon** shows and hides the Groups column.

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { NamesPayload } from '@/lib/names-payload';
-import { splitName } from '@/lib/names';
+import { splitName, typeAheadIndex } from '@/lib/names';
 import { bookHref, contextQs } from '@/lib/urls';
 import { buildLayout, NAV_KEYS, pinnedHeader, revealTop, step, visibleRange, type NavKey } from '@/lib/window';
 
@@ -117,13 +117,30 @@ export default function NamesList({ version, footerStart }: { version: string; f
   // page keys jump. Active when focus is in the list or on nothing at all.
   const nav = useRef({ data, indexOf, selected, qs, viewH });
   nav.current = { data, indexOf, selected, qs, viewH };
+  const typed = useRef({ text: '', at: 0 });
   useEffect(() => {
     if (busyCard) return;
     const onKey = (e: KeyboardEvent) => {
-      if (!NAV_KEYS.has(e.key) || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
       const t = e.target as HTMLElement | null;
       const inList = !!t && !!listRef.current?.contains(t);
       const idle = !t || t === document.body || t === document.documentElement;
+
+      // Typing letters with the list focused jumps to the first matching name.
+      if (inList && e.key.length === 1 && (e.key !== ' ' || typed.current.text)) {
+        const { data: d, qs: q } = nav.current;
+        if (!d || d.rows.length === 0) return;
+        const now = Date.now();
+        typed.current = { text: (now - typed.current.at < 800 ? typed.current.text : '') + e.key, at: now };
+        const sort = new URLSearchParams(q).get('sort');
+        const mode = !sort || sort === 'last' ? 'last' : sort === 'first' ? 'first' : 'other';
+        const i = typeAheadIndex(d.rows.map((r) => r[1]), typed.current.text, mode);
+        e.preventDefault();
+        if (i !== null) router.replace(bookHref(q, { id: d.rows[i][0] }), { scroll: false });
+        return;
+      }
+
+      if (!NAV_KEYS.has(e.key) || e.shiftKey) return;
       if (!inList && !idle) return;
       const { data: d, indexOf: idx, selected: sel, qs: q, viewH: h } = nav.current;
       if (!d || d.rows.length === 0) return;
@@ -204,7 +221,7 @@ export default function NamesList({ version, footerStart }: { version: string; f
         onScroll={onScroll}
         aria-busy={busy || undefined}
         tabIndex={0}
-        aria-label="Names. Use the up and down arrow keys to move between cards."
+        aria-label="Names. Use the arrow keys to move between cards, or type a name to jump to it."
       >
         {pin && (
           <div className="names-pin" aria-hidden="true">

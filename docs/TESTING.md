@@ -44,6 +44,7 @@ In the terminal (stop the app first with Ctrl-C, or use a second terminal):
       under letters, surnames in bold.
 - [ ] Clicking a name shows their card on the right page.
 - [ ] Up and Down arrow keys move between cards. Home and End jump to the first and last.
+- [ ] Click in the names list and type the start of a surname (e.g. "lov"): it jumps to that person.
 - [ ] The search box narrows the list as you type, and the open card stays open.
 - [ ] The red ribbon at the top of the left page hides and shows the Groups column.
 - [ ] Clicking a group (e.g. "Missing phone") narrows the list; "All Contacts" brings everyone back.

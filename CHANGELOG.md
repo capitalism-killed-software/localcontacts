@@ -20,7 +20,8 @@ The first public release.
 - The look of Address Book from OS X 10.7/10.8: groups (sources, industries, smart groups),
   names sorted by surname with A–Z sections, the card with its photo, edit mode with add and
   remove rows, Lion's ribbon to hide the groups. One page at a time on a phone.
-- Arrow keys, Home, End and the page keys move between cards.
+- Arrow keys, Home, End and the page keys move between cards; typing a name with the list
+  focused jumps to it.
 - Fast with large address books: the names list loads once and draws only what is on screen.
 
 **Exporting**

@@ -63,3 +63,14 @@ test('search narrows the list and the count', async ({ page }) => {
   await page.locator('.search input').fill('');
   await expect(page.locator('.names-count')).toContainText(/7,0\d\d cards/);
 });
+
+test('typing a name with the list focused jumps to it', async ({ page }) => {
+  await openBook(page);
+  await page.locator('.names-list').focus();
+  await page.keyboard.type('lovel');
+  await expect(selectedName(page)).toContainText('Lovel');
+  await expect(selectedName(page)).toBeInViewport();
+  await page.waitForTimeout(900);
+  await page.keyboard.type('turn');
+  await expect(selectedName(page)).toContainText('Turn');
+});

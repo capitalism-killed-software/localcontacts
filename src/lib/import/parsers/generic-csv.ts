@@ -5,7 +5,7 @@ import { headersOf, readCsv, type Row } from './csv';
 // Any CSV with a header row: a CRM export, a spreadsheet, another contacts app.
 // Columns are guessed from common header names; --map overrides per field.
 
-import { MAPPABLE, type FieldMap, type MappableField } from '../fields';
+import { FIELD_LABELS, MAPPABLE, type FieldMap, type MappableField } from '../fields';
 export { MAPPABLE, type FieldMap, type MappableField };
 
 const MULTI: ReadonlySet<MappableField> = new Set(['email', 'phone', 'url']);
@@ -105,7 +105,7 @@ export function parseGenericCsv(text: string, map: FieldMap = {}): ParseResult {
     });
   }
 
-  const used = MAPPABLE.filter((f) => cols[f].length).map((f) => `${f} ← ${cols[f].join(' + ')}`);
+  const used = MAPPABLE.filter((f) => cols[f].length).map((f) => `${FIELD_LABELS[f]} ← ${cols[f].join(' + ')}`);
   const warnings = [`columns used: ${used.join('; ')}`];
   const unused = headers.filter((h) => !MAPPABLE.some((f) => cols[f].includes(h)));
   if (unused.length) warnings.push(`columns ignored: ${unused.join(', ')}`);

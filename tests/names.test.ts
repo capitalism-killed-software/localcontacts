@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nameSortKey, sectionLetter, sectionize, splitName } from '../src/lib/names';
+import { nameSortKey, sectionLetter, sectionize, splitName, typeAheadIndex } from '../src/lib/names';
 
 describe('splitName', () => {
   it('takes the last token as the surname', () => {
@@ -53,5 +53,25 @@ describe('sectionize', () => {
   });
   it('handles an empty list', () => {
     expect(sectionize([], 'last')).toEqual([]);
+  });
+});
+
+
+describe('typeAheadIndex', () => {
+  const bySurname = ['Zed Alpha', 'Ada Lovelace', 'Bob Lovelace', 'Grace Martin', 'Alan Turing'];
+  it('finds the first surname starting with what was typed', () => {
+    expect(typeAheadIndex(bySurname, 'l', 'last')).toBe(1);
+    expect(typeAheadIndex(bySurname, 'lovelace b', 'last')).toBe(2);
+    expect(typeAheadIndex(bySurname, 'TUR', 'last')).toBe(4);
+  });
+  it('lands on the next name when nothing starts with it', () => {
+    expect(typeAheadIndex(bySurname, 'ma', 'last')).toBe(3);
+    expect(typeAheadIndex(bySurname, 'n', 'last')).toBe(4);
+    expect(typeAheadIndex(bySurname, 'zz', 'last')).toBeNull();
+  });
+  it('ignores accents and case, and matches whole names for other sorts', () => {
+    expect(typeAheadIndex(['José Núñez'], 'nu', 'last')).toBe(0);
+    expect(typeAheadIndex(['Acme Plumbing', 'Bolt Ltd'], 'bo', 'other')).toBe(1);
+    expect(typeAheadIndex(['Acme'], '', 'last')).toBeNull();
   });
 });

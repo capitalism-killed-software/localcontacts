@@ -85,7 +85,7 @@ describe('generic CSV', () => {
       connected_on: '2024-01-15',
       notes: 'Strong fit',
     });
-    expect(warnings[0]).toMatch(/columns used: full_name ← Contact Name/);
+    expect(warnings[0]).toMatch(/columns used: name ← Contact Name; email ← Email \+ Email 2/);
     expect(warnings[1]).toMatch(/columns ignored: Fax/);
   });
 
