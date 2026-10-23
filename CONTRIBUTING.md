@@ -62,6 +62,13 @@ were measured from screenshots of the original, so change them only to get close
 (`src/components/NamesList.tsx`) fed by `/api/contacts`, drawing only visible rows with the maths
 in `src/lib/window.ts`. URL parameters are parsed once, in `src/lib/context.ts`.
 
+## Import page and photos
+
+The import page (`src/components/ImportPanel.tsx`) posts files to `/api/import`, which calls the
+same `runImport` as the command line; keep both on that one function. The endpoint rejects
+requests from other origins because the app has no login. Photos are validated by their bytes
+in `src/lib/photo.ts`; never trust a file name or a declared type, and never fetch a photo URL.
+
 ## Export
 
 `src/lib/export/vcard.ts` and `csv.ts` write what the importer reads back.

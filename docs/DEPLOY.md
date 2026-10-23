@@ -102,7 +102,10 @@ options if the server holds other sensitive things.
 
 ## 5. Backups
 
-The database uses SQLite's write-ahead log, so a plain file copy while the app is running
+Every import (from the import page or `npm run import -- --apply`) first saves a consistent copy
+of the database to `data/backups/contacts-<date>-<time>.db`. Delete old ones whenever you like.
+
+For your own backups: the database uses SQLite's write-ahead log, so a plain file copy while the app is running
 can miss the most recent writes. Either stop the app and copy the file, or ask SQLite for
 a consistent copy while it runs:
 

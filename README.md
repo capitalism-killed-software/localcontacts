@@ -67,8 +67,11 @@ npm run import -- --apply seed/sample-contacts.csv
    - **Telegram:** Desktop app → Settings → Advanced → Export Telegram data → Contacts, JSON
    - **Android:** Contacts app → Fix & manage → Export to file
    - **Signal and WhatsApp** do not export contacts; they read your phone's address book, so export that (Apple or Android).
-2. Put the files in `imports/` (gitignored) or anywhere outside the repo.
-3. Run the importer. It is a dry run until you add `--apply`:
+2. In the app, press **Import…** under the groups (on a phone: the groups menu), drop the
+   files in, check the summary and press **Import**. Or use the command line, below.
+
+From the command line, put the files in `imports/` (gitignored) or anywhere outside the repo.
+The importer is a dry run until you add `--apply`:
 
 ```bash
 npm run import -- imports/contacts.vcf imports/Connections.csv imports/result.json
@@ -76,10 +79,10 @@ npm run import -- --apply imports/contacts.vcf imports/Connections.csv imports/r
 ```
 
 The dry run prints, per file, what it recognised, how many contacts it found and what it
-will not keep (photos, postal addresses, birthdays), then how many contacts are new and how
+will not keep (postal addresses, birthdays, photos that are only a link), then how many contacts are new and how
 many merge into ones you already have. Re-running is safe: a person matched by any email,
 then any phone number, then full name is kept once, empty fields are filled in, and further
-emails, phones and links are added. Nothing already stored is overwritten.
+emails, phones, links and a photo are added. Nothing already stored is overwritten.
 
 Options:
 
@@ -88,9 +91,19 @@ Options:
 --map=<spec>      column names for a generic CSV, e.g. --map=full_name=Name,email=Email,phone=Mobile
 --country=<CC>    country for phone numbers written without a + prefix (default: US, or CONTACTS_DEFAULT_COUNTRY)
 --tag-only        only add the source tag to contacts that already match; insert and change nothing else
+--no-backup       skip the database copy normally saved before writing
 ```
 
-Back up `data/contacts.db` before the first `--apply`; see the [deployment guide](docs/DEPLOY.md) for how.
+Before writing, both the import page and `--apply` save a copy of the database to
+`data/backups/`. To undo an import, stop the app and copy that file over `data/contacts.db`.
+
+## Using the book
+
+- **Arrow keys** move between cards, as in Address Book: up and down, Home and End, Page Up
+  and Page Down. They work when the names list has focus or nothing does.
+- **Photos**: imported from vCards; in edit mode click the photo square to choose one (JPEG,
+  PNG, GIF or WebP, up to 2 MB) or press remove.
+- **The ribbon** shows and hides the Groups column.
 
 ## Export
 

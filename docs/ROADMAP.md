@@ -93,14 +93,22 @@ Done, see above.
 Done, see above. Screenshots in the export guide were dropped: they need real accounts on each
 platform, so the guide links to each vendor's help page instead, with the date it was checked.
 
+### Import page, photos and arrow keys (2026-10-23)
+
+Done. **Import…** opens a sheet in the book: drop files, read the dry-run summary, press
+Import; it runs the same library as the command line (`src/lib/import/run.ts`), backs the
+database up to `data/backups/` first, and only accepts uploads from the app's own pages.
+Card photos come from vCard `PHOTO` (3.0, 2.1 and 4.0 data URIs; links are not fetched), are
+checked by their bytes (JPEG, PNG, GIF, WebP, up to 2 MB), can be chosen or removed in edit mode,
+and go back out in vCard exports. Arrow keys, Home, End and the page keys move between cards.
+
 ### Next
 
-- An `/import` page that takes a file upload, shows the dry-run summary and has an Apply button,
-  on the same library as the command line.
-- A photo on the card (vCard `PHOTO`, currently skipped on import).
-- Keyboard navigation in the names list (up and down arrows move between cards).
 - Re-check the export guide against the vendors' pages every few months.
 - Run `scripts/app/install-desktop.sh` on a Mac once; the `.app` bundle is untested there.
+- Column mapping on the import page (today `--map` is command-line only; the page shows the
+  hint when a CSV's columns can't be guessed).
+- Type-to-jump in the names list (press a letter to go to that section).
 
 ## Decisions taken
 

@@ -26,7 +26,8 @@ Contacts are personal data twice over. They are yours, and they are also every o
 person's name, employer, phone number and email, which those people gave you and not to a
 third party. The design rules follow from that:
 
-- **Nothing leaves your machine.** The app makes no network calls. There is no sign-up,
+- **Nothing leaves your machine.** The app makes no network calls; a contact photo that is
+  only a web link in a vCard is skipped rather than fetched. There is no sign-up,
   no sync, no telemetry, no analytics, no update check. Next.js's own anonymous telemetry
   is switched off in the Docker image, and you can switch it off for a local install with
   `npx next telemetry disable`.
