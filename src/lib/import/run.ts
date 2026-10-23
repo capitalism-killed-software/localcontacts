@@ -101,7 +101,7 @@ export function runImport(files: ImportFile[], opts: ImportOptions = {}): Import
   const existing = db
     .prepare(
       `SELECT id, full_name, title, company, email, phone, alt_emails, alt_phones, urls,
-              notes, connected_on, last_contacted, sources, (photo_type IS NOT NULL) AS has_photo
+              notes, connected_on, last_contacted, sources, industry, (photo_type IS NOT NULL) AS has_photo
        FROM contacts`
     )
     .all() as unknown as ExistingRow[];
@@ -115,15 +115,15 @@ export function runImport(files: ImportFile[], opts: ImportOptions = {}): Import
 
   const insert = db.prepare(`
     INSERT INTO contacts (full_name, title, company, email, phone, alt_emails, alt_phones, urls,
-                          notes, connected_on, last_contacted, sources)
+                          notes, connected_on, last_contacted, industry, sources)
     VALUES (@full_name, @title, @company, @email, @phone, @alt_emails, @alt_phones, @urls,
-            @notes, @connected_on, @last_contacted, @sources)
+            @notes, @connected_on, @last_contacted, @industry, @sources)
   `);
   const update = db.prepare(`
     UPDATE contacts SET
       full_name = @full_name, title = @title, company = @company, email = @email, phone = @phone,
       alt_emails = @alt_emails, alt_phones = @alt_phones, urls = @urls, notes = @notes,
-      connected_on = @connected_on, last_contacted = @last_contacted, sources = @sources,
+      connected_on = @connected_on, last_contacted = @last_contacted, industry = @industry, sources = @sources,
       updated_at = datetime('now')
     WHERE id = @id
   `);

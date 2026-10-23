@@ -29,6 +29,9 @@ export type IncomingContact = {
   notes: string | null;
   urls: string[];
   connected_on: string | null;
+  last_contacted?: string | null;
+  industry?: string | null;
+  uid?: string | null; // the card's id within its file (vCard UID)
   photo?: Photo | null;
 };
 

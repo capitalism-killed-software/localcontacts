@@ -42,7 +42,7 @@ describe('contactsToCsv', () => {
   it('writes numbered columns sized to the widest contact, CRLF between records', () => {
     const text = contactsToCsv(list);
     const header = text.split('\r\n')[0];
-    expect(header).toBe('Name,Email,Email 2,Phone,Company,Title,URL,URL 2,Notes,Connected On,Last Contacted,Industry,Sources');
+    expect(header).toBe('ID,Name,Email,Email 2,Phone,Company,Title,URL,URL 2,Notes,Connected On,Last Contacted,Industry,Sources');
     expect(text.endsWith('\r\n')).toBe(true);
     expect(contactsToCsv(list, { bom: true }).charCodeAt(0)).toBe(0xfeff);
   });
@@ -65,6 +65,6 @@ describe('contactsToCsv', () => {
   });
 
   it('writes just the header for an empty list', () => {
-    expect(contactsToCsv([]).split('\r\n')[0]).toBe('Name,Email,Phone,Company,Title,URL,Notes,Connected On,Last Contacted,Industry,Sources');
+    expect(contactsToCsv([]).split('\r\n')[0]).toBe('ID,Name,Email,Phone,Company,Title,URL,Notes,Connected On,Last Contacted,Industry,Sources');
   });
 });

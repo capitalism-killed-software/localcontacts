@@ -9,7 +9,8 @@ The first public release.
   Contacts CSV in both layouts, Outlook CSV, LinkedIn `Connections.csv`, Telegram `result.json`
   and any CSV with a header row; formats are recognised from the contents.
 - Merges the same person across files by email, then phone (normalised, so formatting doesn't
-  matter, and never when the emails disagree), then name. Keeps every email, phone and link and
+  matter; only when the names could be the same person and the emails don't disagree), then
+  name. Cards that one file keeps apart (different ids) stay apart unless an email matches. Keeps every email, phone and link and
   an embedded photo; never overwrites what is stored.
 - An import page in the app with a dry-run summary, column choices for CSVs it can't read on its
   own, and a backup of the database before writing. The same import from the command line
@@ -24,7 +25,8 @@ The first public release.
 
 **Exporting**
 - vCard 3.0 and CSV from the command line (`npm run export`) with the book's filters, and an
-  Export vCard button on each card. Exports import back unchanged.
+  Export vCard button on each card. Exports carry each card's id and import back unchanged,
+  checked on a real 7,000-contact address book.
 
 **Running it**
 - Any OS with Node 22.13 or newer; Docker; an installable web app with its own icon; launchers

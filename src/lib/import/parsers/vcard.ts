@@ -1,6 +1,6 @@
 import type { IncomingContact, ParseResult } from '../types';
 import { stripBom } from '../detect';
-import { clean, dedupeEmails, dedupePhones, dedupeStrings, defaultCountry, NO_NAME } from '../normalize';
+import { clean, dedupeEmails, dedupePhones, dedupeStrings, defaultCountry, isoDate, NO_NAME } from '../normalize';
 import { photoFromBase64, photoFromDataUri, type Photo, type PhotoResult } from '../../photo';
 
 // vCard 2.1, 3.0 and 4.0 as produced by Apple (iCloud, macOS, iPhone), Google,
@@ -21,6 +21,10 @@ type Card = {
   notes: string[];
   urls: string[];
   photo: Photo | null;
+  uid: string | null;
+  connected: string | null;
+  contacted: string | null;
+  industry: string | null;
 };
 
 const ENCODINGS = new Set(['QUOTED-PRINTABLE', 'BASE64', 'B', '8BIT', '7BIT']);
@@ -189,7 +193,7 @@ function hintFromProdId(v: string): string | null {
   return null;
 }
 
-const newCard = (): Card => ({ fn: null, n: null, emails: [], tels: [], org: null, title: null, notes: [], urls: [], photo: null });
+const newCard = (): Card => ({ fn: null, n: null, emails: [], tels: [], org: null, title: null, notes: [], urls: [], photo: null, uid: null, connected: null, contacted: null, industry: null });
 
 const byPref = (a: Ranked, b: Ranked) => a.pref - b.pref || a.i - b.i;
 
@@ -212,7 +216,10 @@ function toContact(card: Card): IncomingContact | null {
     title: card.title,
     notes: card.notes.length ? card.notes.join('\n') : null,
     urls: dedupeStrings(card.urls),
-    connected_on: null,
+    connected_on: card.connected,
+    last_contacted: card.contacted,
+    industry: card.industry,
+    uid: card.uid,
     photo: card.photo,
   };
 }
@@ -286,6 +293,19 @@ export function parseVcard(text: string): ParseResult {
         if (t) card.notes.push(t);
         break;
       }
+      case 'UID':
+        if (!card.uid) card.uid = clean(v);
+        break;
+      // Written by localcontacts' own export, so a round trip keeps them.
+      case 'X-LOCALCONTACTS-CONNECTED':
+        card.connected = isoDate(v);
+        break;
+      case 'X-LOCALCONTACTS-LASTCONTACTED':
+        card.contacted = isoDate(v);
+        break;
+      case 'X-LOCALCONTACTS-INDUSTRY':
+        card.industry = clean(unescapeText(v));
+        break;
       case 'URL': {
         const u = clean(v);
         if (u) card.urls.push(u);

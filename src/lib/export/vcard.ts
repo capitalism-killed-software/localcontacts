@@ -61,7 +61,7 @@ function displayName(c: Contact): string {
 }
 
 export function contactToVcard(c: Contact, photo: Photo | null = null): string {
-  const out: string[] = ['BEGIN:VCARD', 'VERSION:3.0', 'PRODID:-//localcontacts//EN'];
+  const out: string[] = ['BEGIN:VCARD', 'VERSION:3.0', 'PRODID:-//localcontacts//EN', `UID:localcontacts-${c.id}`];
   const real = c.full_name && c.full_name !== NO_NAME && !c.full_name.includes('@');
   const { first, last, suffix } = real ? splitName(c.full_name) : { first: '', last: '', suffix: '' };
   out.push(`N:${[last, first, '', '', suffix].map(escapeText).join(';')}`);
@@ -81,6 +81,7 @@ export function contactToVcard(c: Contact, photo: Photo | null = null): string {
     .map((x) => (x ?? '').trim())
     .filter(Boolean);
   if (categories.length) out.push(`CATEGORIES:${categories.map(escapeText).join(',')}`);
+  if (c.industry) out.push(`X-LOCALCONTACTS-INDUSTRY:${escapeText(c.industry)}`);
   if (c.connected_on) out.push(`X-LOCALCONTACTS-CONNECTED:${raw(c.connected_on)}`);
   if (c.last_contacted) out.push(`X-LOCALCONTACTS-LASTCONTACTED:${raw(c.last_contacted)}`);
   const r = rev(c.updated_at);

@@ -30,6 +30,7 @@ export function contactsToCsv(list: Contact[], opts: { bom?: boolean } = {}): st
   // No column is called "Created" or "Date": the importer would take it for
   // the connected-on date.
   const header = [
+    'ID',
     'Name',
     ...numbered('Email', ne),
     ...numbered('Phone', np),
@@ -45,6 +46,7 @@ export function contactsToCsv(list: Contact[], opts: { bom?: boolean } = {}): st
   const pad = (xs: string[], n: number) => [...xs, ...Array(n - xs.length).fill('')];
   const body = rows.map(({ c, emails, phones, urls }) =>
     [
+      `localcontacts-${c.id}`,
       c.full_name === NO_NAME ? '' : c.full_name,
       ...pad(emails, ne),
       ...pad(phones, np),

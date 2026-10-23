@@ -43,6 +43,7 @@ const GUESS: Record<MappableField, (h: string) => boolean> = {
     ['url', 'website', 'web page', 'web', 'linkedin', 'linkedin url', 'profile', 'profile url', 'link'].includes(h) ||
     /^(url|website|link) \d+$/.test(h),
   connected_on: (h) => ['connected on', 'connected', 'date', 'created', 'created at', 'added', 'date added', 'since'].includes(h),
+  uid: (h) => ['id', 'uid', 'card id', 'contact id', 'record id'].includes(h),
 };
 
 function resolveColumns(headers: string[], map: FieldMap): Record<MappableField, string[]> {
@@ -100,6 +101,7 @@ export function parseGenericCsv(text: string, map: FieldMap = {}): ParseResult {
       notes: values(r, cols.notes)[0] ?? null,
       urls: dedupeStrings(values(r, cols.url)),
       connected_on: isoDate(values(r, cols.connected_on)[0]),
+      uid: values(r, cols.uid)[0] ?? null,
     });
   }
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { planMerge, recToColumns, type Batch, type ExistingRow, type IncomingContact } from '../../src/lib/import';
+import { namesCompatible } from '../../src/lib/import/merge';
 
 const row = (over: Partial<ExistingRow>): ExistingRow => ({
   id: 1, full_name: 'X', title: null, company: null, email: null, phone: null,
@@ -43,8 +44,38 @@ describe('planMerge', () => {
     expect(stats.inserted).toBe(1);
     expect(rows).toHaveLength(2);
     // Without an email on one side, the phone still matches.
-    const second = planMerge(existing, [batch('telegram', inc({ name: 'G H', phones: ['+12025550199'] }))], opts);
+    const second = planMerge(existing, [batch('telegram', inc({ name: 'Grace', phones: ['+12025550199'] }))], opts);
     expect(second.stats.inserted).toBe(0);
+  });
+
+  it('needs compatible names to merge on a shared phone', () => {
+    const existing = [row({ id: 1, full_name: 'Mary Smith', phone: '+1 202 555 0100' })];
+    const family = planMerge(existing, [batch('apple', inc({ name: 'John Smith', phones: ['(202) 555-0100'] }))], opts);
+    expect(family.stats.inserted).toBe(1);
+    const reception = planMerge(existing, [batch('csv', inc({ name: 'Reception', phones: ['+12025550100'] }))], opts);
+    expect(reception.stats.inserted).toBe(1);
+    const nickname = planMerge(existing, [batch('telegram', inc({ name: 'Mary S', phones: ['+12025550100'] }))], opts);
+    expect(nickname.stats.inserted).toBe(0);
+    const unnamed = planMerge(existing, [batch('vcard', inc({ name: '(no name)', phones: ['+12025550100'] }))], opts);
+    expect(unnamed.stats.inserted).toBe(0);
+  });
+
+  it('keeps cards from one file apart when their ids differ, unless an email matches', () => {
+    const twins = planMerge([], [batch('vcard',
+      inc({ name: 'Belle Example', uid: 'a' }),
+      inc({ name: 'Belle Example', uid: 'b' }),
+      inc({ name: 'Pat Line', phones: ['+1 202 555 0123'], uid: 'c' }),
+      inc({ name: 'Pat Line', phones: ['+1 202 555 0123'], uid: 'd' }),
+    )], opts);
+    expect(twins.rows).toHaveLength(4);
+    const sameEmail = planMerge([], [batch('vcard',
+      inc({ name: 'Ada', emails: ['ada@example.com'], uid: 'a' }),
+      inc({ name: 'Ada L', emails: ['ada@example.com'], uid: 'b' }),
+    )], opts);
+    expect(sameEmail.rows).toHaveLength(1);
+    // Across files the ids mean nothing to each other, so names still merge.
+    const acrossFiles = planMerge([], [batch('one', inc({ name: 'Belle Example', uid: 'a' })), batch('two', inc({ name: 'Belle Example', uid: 'b' }))], opts);
+    expect(acrossFiles.rows).toHaveLength(1);
   });
 
   it('falls back to the normalised name', () => {
@@ -105,5 +136,18 @@ describe('planMerge', () => {
     const cols = recToColumns(rows[0]);
     expect(cols.sources).toBe('google,linkedin');
     expect(cols.phone).toBeNull(); // tag-only changes nothing else
+  });
+});
+
+
+describe('namesCompatible', () => {
+  it('accepts the same person written differently and rejects different people', () => {
+    expect(namesCompatible('Ada Lovelace', 'ada lovelace')).toBe(true);
+    expect(namesCompatible('Ada L', 'Ada Lovelace')).toBe(true);
+    expect(namesCompatible('Lovelace', 'Ada Lovelace')).toBe(true);
+    expect(namesCompatible('(no name)', 'Ada Lovelace')).toBe(true);
+    expect(namesCompatible('ada@example.com', 'Ada Lovelace')).toBe(true);
+    expect(namesCompatible('Mary Smith', 'John Smith')).toBe(false);
+    expect(namesCompatible('Reception', 'Jane Doe')).toBe(false);
   });
 });

@@ -73,7 +73,10 @@ describe('contactToVcard', () => {
       title: 'Engineer, Networks',
       notes: 'Path C:\\new\nsecond, line; here',
       urls: ['https://example.com/mary', 'https://example.com/blog'],
-      connected_on: null,
+      connected_on: '2024-01-15',
+      last_contacted: '2026-10-01',
+      industry: 'Legal',
+      uid: 'localcontacts-1',
       photo: null,
     });
   });

@@ -22,6 +22,7 @@ export type ExistingRow = {
   connected_on: string | null;
   last_contacted: string | null;
   sources: string | null;
+  industry?: string | null;
   has_photo?: number | null; // 1 when a photo is stored (the bytes are not loaded)
 };
 
@@ -36,7 +37,10 @@ export type Rec = {
   notes: string | null;
   connected_on: string | null;
   last_contacted: string | null;
+  industry: string | null;
   sources: string[];
+  batch: number | null; // which file it came from; null for rows already stored
+  uid: string | null; // the card's id in that file, when it has one
   hasPhoto: boolean;
   photo: Photo | null; // a photo to write; null leaves the stored one alone
   dirty: boolean; // existing row that changed and needs an UPDATE
@@ -69,7 +73,10 @@ export function rowToRec(r: ExistingRow): Rec {
     notes: r.notes,
     connected_on: r.connected_on,
     last_contacted: r.last_contacted,
+    industry: r.industry ?? null,
     sources: r.sources ? r.sources.split(',').map((s) => s.trim()).filter(Boolean) : [],
+    batch: null,
+    uid: null,
     hasPhoto: !!r.has_photo,
     photo: null,
     dirty: false,
@@ -91,11 +98,12 @@ export function recToColumns(rec: Rec) {
     notes: rec.notes,
     connected_on: rec.connected_on,
     last_contacted: rec.last_contacted,
+    industry: rec.industry,
     sources: rec.sources.length ? [...new Set(rec.sources)].sort().join(',') : null,
   };
 }
 
-function fromIncoming(c: IncomingContact, source: string): Rec {
+function fromIncoming(c: IncomingContact, source: string, batch: number): Rec {
   return {
     id: null,
     full_name: c.name,
@@ -106,8 +114,11 @@ function fromIncoming(c: IncomingContact, source: string): Rec {
     urls: c.urls,
     notes: c.notes,
     connected_on: c.connected_on,
-    last_contacted: null,
+    last_contacted: c.last_contacted ?? null,
+    industry: c.industry ?? null,
     sources: [source],
+    batch,
+    uid: c.uid ?? null,
     hasPhoto: !!c.photo,
     photo: c.photo ?? null,
     dirty: false,
@@ -115,6 +126,21 @@ function fromIncoming(c: IncomingContact, source: string): Rec {
 }
 
 const isPlaceholderName = (n: string) => n === NO_NAME || n.includes('@');
+
+// Whether two names could be the same person, for a match on a shared phone
+// number: "Ada L" and "Ada Lovelace" could, "Mary Smith" and "John Smith" on
+// one landline could not. An unnamed card matches anyone.
+export function namesCompatible(a: string, b: string): boolean {
+  if (isPlaceholderName(a) || isPlaceholderName(b)) return true;
+  const ka = nameKey(a);
+  const kb = nameKey(b);
+  if (!ka || !kb || ka === kb) return true;
+  const fa = ka.split(' ');
+  const fb = kb.split(' ');
+  if (fa[0] === fb[0]) return true;
+  const contains = (x: string[], y: string[]) => y.every((t) => x.includes(t));
+  return contains(fa, fb) || contains(fb, fa);
+}
 
 function unionSources(t: Rec, inc: Rec): boolean {
   const before = t.sources.length;
@@ -124,7 +150,7 @@ function unionSources(t: Rec, inc: Rec): boolean {
 
 function mergeInto(t: Rec, inc: Rec, stats: MergeStats, country: CountryCode): boolean {
   let changed = false;
-  for (const f of ['title', 'company', 'connected_on', 'last_contacted'] as const) {
+  for (const f of ['title', 'company', 'connected_on', 'last_contacted', 'industry'] as const) {
     if (t[f] == null && inc[f] != null) {
       t[f] = inc[f];
       changed = true;
@@ -220,6 +246,11 @@ export function planMerge(
     return !a.emails.some((e) => keys.has(emailKey(e)));
   };
 
+  // Two cards from the same file with different ids are two people as far
+  // as that file is concerned; only an email match overrules that.
+  const sameFileDifferentCard = (a: Rec, b: Rec): boolean =>
+    a.batch !== null && a.batch === b.batch && !!a.uid && !!b.uid && a.uid !== b.uid;
+
   const find = (r: Rec): Rec | undefined => {
     for (const e of r.emails) {
       const k = emailKey(e);
@@ -229,10 +260,13 @@ export function planMerge(
     for (const p of r.phones) {
       const k = phoneKey(p, country);
       const hit = k ? byPhone.get(k) : undefined;
-      if (hit && !emailsConflict(r, hit)) return hit;
+      if (hit && !emailsConflict(r, hit) && namesCompatible(r.full_name, hit.full_name) && !sameFileDifferentCard(r, hit)) {
+        return hit;
+      }
     }
     const nk = nameOf(r);
-    return nk ? byName.get(nk) : undefined;
+    const hit = nk ? byName.get(nk) : undefined;
+    return hit && !sameFileDifferentCard(r, hit) ? hit : undefined;
   };
 
   for (const row of existing) {
@@ -241,10 +275,10 @@ export function planMerge(
     index(r);
   }
 
-  for (const batch of batches) {
+  for (const [b, batch] of batches.entries()) {
     for (const c of batch.contacts) {
       stats.incoming++;
-      const inc = fromIncoming(c, batch.source);
+      const inc = fromIncoming(c, batch.source, b);
       const target = find(inc);
       if (target) {
         const changed = tagOnly ? unionSources(target, inc) : mergeInto(target, inc, stats, country);
