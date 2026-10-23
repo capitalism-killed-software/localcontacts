@@ -102,13 +102,22 @@ Card photos come from vCard `PHOTO` (3.0, 2.1 and 4.0 data URIs; links are not f
 checked by their bytes (JPEG, PNG, GIF, WebP, up to 2 MB), can be chosen or removed in edit mode,
 and go back out in vCard exports. Arrow keys, Home, End and the page keys move between cards.
 
+### Release preparation (2026-10-23)
+
+Done: browser tests in CI (`npm run test:e2e`), a tester checklist (`docs/TESTING.md`), column
+choices for CSVs on the import page, the export guide served in the app at `/help/export`,
+type-to-jump in the names list, host-name allowlist against DNS rebinding
+(`CONTACTS_ALLOWED_HOSTS`), safe links, error pages, `SECURITY.md`, `CHANGELOG.md`, issue
+templates, Dependabot. A trial on a real 7,000-contact address book led to stricter phone
+matching and card ids in exports; both export formats now round-trip it exactly.
+
 ### Next
 
-- Re-check the export guide against the vendors' pages every few months.
-- Run `scripts/app/install-desktop.sh` on a Mac once; the `.app` bundle is untested there.
-- Column mapping on the import page (today `--map` is command-line only; the page shows the
-  hint when a CSV's columns can't be guessed).
-- Type-to-jump in the names list (press a letter to go to that section).
+- Hand testing on macOS, Windows and Linux with `docs/TESTING.md`, including the first run of
+  `scripts/app/install-desktop.sh` on a Mac. Fix what it finds, each with a test.
+- Release 1.0.0: date the changelog, tag, publish the GitHub release, make the repository public.
+- After 1.0: installers that bundle Node so people need not install it; more import formats if
+  people ask (LDIF, Zoho); re-check the export guide against the vendors' pages every few months.
 
 ## Decisions taken
 
