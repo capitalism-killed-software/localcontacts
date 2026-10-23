@@ -1,6 +1,40 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* The small reset the layout below relies on (it used to come from Tailwind). */
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+body,
+h1,
+h2,
+h3,
+p,
+dl,
+dd,
+figure {
+  margin: 0;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+button {
+  background: none;
+  border: 0;
+  padding: 0;
+}
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+img,
+svg {
+  display: block;
+  vertical-align: middle;
+}
 
 /*
  * The look of Address Book / Contacts on OS X 10.7–10.8, measured from the
@@ -51,7 +85,7 @@ body {
   background: #b5d5ff;
 }
 
-@layer components {
+
   /* ---------------------------------------------------------------- desk */
   .desk {
     min-height: 100vh;
@@ -848,4 +882,3 @@ body {
       transition: background-color 60ms linear;
     }
   }
-}
