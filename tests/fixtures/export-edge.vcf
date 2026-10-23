@@ -1,0 +1,32 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Smith\, Jr.;Mary Ann;;;
+FN:Mary Ann Smith\, Jr.
+ORG:AT&T\; Labs;Research
+TITLE:Engineer\, Networks
+EMAIL;TYPE=INTERNET;TYPE=PREF:mary@example.com
+EMAIL;TYPE=INTERNET:mary.home@example.com
+TEL;TYPE=CELL:+1 202 555 0171
+TEL;TYPE=WORK:+1 202 555 0172
+URL:https://example.com/mary
+URL:https://example.com/mary/blog
+NOTE:Path C:\\new\\folder\nsecond line\, with comma\; and semicolon
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:李;雷;;;
+FN:Zoë Ñúñez 李雷 🙂 with a rather long display name that needs folding across lines
+EMAIL:zoe@example.com
+NOTE:Ünïcödé note — 你好世界 — that is long enough to need folding across several physical lines in the file 🙂🙂🙂
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:;;;;
+FN:
+EMAIL:nameless@example.com
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:;Cher;;;
+FN:Cher
+END:VCARD

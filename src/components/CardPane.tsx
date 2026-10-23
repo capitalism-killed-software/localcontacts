@@ -37,9 +37,14 @@ export default function CardPane({
     case 'view':
       body = <CardView contact={contact!} editHref={editHref} />;
       footer = (
-        <Link href={editHref} scroll={false} prefetch={false} className="btn">
-          Edit
-        </Link>
+        <>
+          <Link href={editHref} scroll={false} prefetch={false} className="btn">
+            Edit
+          </Link>
+          <a href={`/api/vcard/${contact!.id}`} download className="btn" title="Download this card as a vCard">
+            Export vCard
+          </a>
+        </>
       );
       break;
     case 'edit':

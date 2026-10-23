@@ -37,6 +37,16 @@ describe('planMerge', () => {
     expect(recToColumns(rows[0])).toMatchObject({ phone: '(202) 555-0101', alt_phones: null, sources: 'telegram' });
   });
 
+  it('does not merge on a shared phone when the emails disagree', () => {
+    const existing = [row({ id: 4, full_name: 'Grace Hopper', email: 'grace@example.com', phone: '+1 202 555 0199' })];
+    const { rows, stats } = planMerge(existing, [batch('vcard', inc({ name: 'Ada Lovelace', emails: ['ada@example.com'], phones: ['(202) 555-0199'] }))], opts);
+    expect(stats.inserted).toBe(1);
+    expect(rows).toHaveLength(2);
+    // Without an email on one side, the phone still matches.
+    const second = planMerge(existing, [batch('telegram', inc({ name: 'G H', phones: ['+12025550199'] }))], opts);
+    expect(second.stats.inserted).toBe(0);
+  });
+
   it('falls back to the normalised name', () => {
     const existing = [row({ id: 2, full_name: 'Grace Hopper' })];
     const { stats, rows } = planMerge(existing, [batch('csv', inc({ name: 'grace hopper', emails: ['grace@example.com'] }))], opts);

@@ -195,6 +195,14 @@ export function planMerge(
     if (nk && !byName.has(nk)) byName.set(nk, r);
   };
 
+  // Two records whose emails are all different are different people, even
+  // when they share a phone number (an office line, a family landline).
+  const emailsConflict = (a: Rec, b: Rec): boolean => {
+    if (a.emails.length === 0 || b.emails.length === 0) return false;
+    const keys = new Set(b.emails.map(emailKey).filter(Boolean));
+    return !a.emails.some((e) => keys.has(emailKey(e)));
+  };
+
   const find = (r: Rec): Rec | undefined => {
     for (const e of r.emails) {
       const k = emailKey(e);
@@ -204,7 +212,7 @@ export function planMerge(
     for (const p of r.phones) {
       const k = phoneKey(p, country);
       const hit = k ? byPhone.get(k) : undefined;
-      if (hit) return hit;
+      if (hit && !emailsConflict(r, hit)) return hit;
     }
     const nk = nameOf(r);
     return nk ? byName.get(nk) : undefined;

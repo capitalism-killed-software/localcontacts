@@ -114,7 +114,8 @@ export function listContacts(
   sort: SortKey = 'default',
   dir: SortDir = 'asc',
   source: string = 'all',
-  industry: string = 'all'
+  industry: string = 'all',
+  opts: { limit?: number | null } = {}
 ): Contact[] {
   const db = getDb();
   const q = (query ?? '').trim();
@@ -148,9 +149,10 @@ export function listContacts(
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const order = buildOrder(sort, dir);
-  // Cap results only when text-searching; the unfiltered browse view still
-  // lists everything.
-  const limit = q.length > 0 ? 'LIMIT 500' : '';
+  // By default results are capped at 500 only when text-searching. Pass
+  // `limit: null` for no cap, or a number for a fixed one.
+  const cap = opts.limit === undefined ? (q.length > 0 ? 500 : null) : opts.limit;
+  const limit = cap !== null && Number.isFinite(cap) && cap > 0 ? `LIMIT ${Math.floor(cap)}` : '';
   return db
     .prepare(`SELECT * FROM contacts ${where} ${order} ${limit}`)
     .all(...params) as unknown as Contact[];
@@ -309,6 +311,16 @@ export function deleteContact(id: number): boolean {
   const db = getDb();
   const info = db.prepare(`DELETE FROM contacts WHERE id = ?`).run(id);
   return Number(info.changes) > 0;
+}
+
+// Changes whenever a contact is added, removed or edited, so the names list
+// knows to fetch again after a save.
+export function listVersion(): string {
+  const db = getDb();
+  const row = db
+    .prepare(`SELECT COUNT(*) AS c, MAX(id) AS m, MAX(updated_at) AS u FROM contacts`)
+    .get() as { c: number; m: number | null; u: string | null };
+  return `${row.c}.${row.m ?? 0}.${row.u ?? ''}`;
 }
 
 export function countContacts(): number {
