@@ -129,14 +129,21 @@ Left as known limits: the importer keeps one name string, so a vCard's structure
 stored and exports derive it (company cards excepted); an import is held in memory while it is
 checked (`SECURITY.md`); industry groups are case-sensitive.
 
+### 1.0.0 released (2026-11-04)
+
+Tagged `v1.0.0` and published as a GitHub release. Before it: a round trip of a real
+6,998-card address book (both formats identical, re-import changes nothing) and a run on a clean
+Ubuntu VM (`npm start`, `npm run app` and Docker each listen on this computer only).
+
 ### Next
 
 - Hand testing on macOS, Windows and Linux with `docs/TESTING.md`, including the first run of
-  `scripts/app/install-desktop.sh` on a Mac. Fix what it finds, each with a test.
-- Release 1.0.0: date the changelog, tag and publish the GitHub release (the repository went
-  public on 2026-11-04).
-- After 1.0: installers that bundle Node so people need not install it; more import formats if
-  people ask (LDIF, Zoho); re-check the export guide against the vendors' pages every few months.
+  `scripts/app/install-desktop.sh` on a Mac and `scripts/app/launch.cmd` on Windows. What it
+  finds goes into 1.0.1, each fix with a test.
+- After 1.0: store a vCard's structured name; read imports as a stream so a large file doesn't
+  take GBs of memory; industry groups that ignore case; installers that bundle Node so people
+  need not install it; more import formats if people ask (LDIF, Zoho); re-check the export guide
+  against the vendors' pages every few months.
 
 ## Decisions taken
 
