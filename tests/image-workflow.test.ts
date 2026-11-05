@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs';
 // The container image workflow publishes only from a release tag, and never
 // without first checking that the image starts.
 describe('the image workflow', () => {
-  const yml = readFileSync('.github/workflows/image.yml', 'utf8');
+  // Windows checkouts have CRLF line endings.
+  const yml = readFileSync('.github/workflows/image.yml', 'utf8').replace(/\r\n/g, '\n');
 
   it('publishes only for a release tag', () => {
     expect(yml).toMatch(/RELEASE: \$\{\{ startsWith\(github\.ref, 'refs\/tags\/v'\) \}\}/);
