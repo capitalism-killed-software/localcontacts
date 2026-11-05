@@ -22,7 +22,7 @@ export function splitName(full: string): SplitName {
   return { first: tokens.slice(0, lastIdx).join(' '), last: tokens[lastIdx], suffix };
 }
 
-const fold = (s: string): string => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+import { fold } from './fold';
 
 export type NameSortMode = 'last' | 'first';
 

@@ -24,6 +24,10 @@ describe('nameSortKey / sectionLetter', () => {
     expect(nameSortKey('José Núñez-Ibáñez', 'last')).toEqual(['nunez-ibanez', 'jose']);
     expect(nameSortKey('José Núñez-Ibáñez', 'first')).toEqual(['jose', 'nunez-ibanez']);
     expect(sectionLetter('nunez-ibanez')).toBe('N');
+    // Letters that don't decompose into a base letter and an accent.
+    expect(sectionLetter(nameSortKey('Kari Øvreås', 'last')[0])).toBe('O');
+    expect(sectionLetter(nameSortKey('Łukasz Ostrowski', 'first')[0])).toBe('L');
+    expect(nameSortKey('Ægir Strauß', 'first')).toEqual(['aegir', 'strauss']);
   });
   it('sends digits, punctuation and non-Latin scripts to #', () => {
     expect(sectionLetter('(no name)')).toBe('#');

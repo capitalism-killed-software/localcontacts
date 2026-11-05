@@ -89,3 +89,8 @@ The first public release.
   first click on Import. Backups are named in local time, a second one in the same second sorts
   after the first, a dry run no longer creates an empty database file, and the pages show where
   the database really is.
+- Search ignores case in every script and ignores accents ("nunez" finds Núñez, "élodie" finds
+  Élodie), matches each word on its own and in any order ("wendell quarry"), and finds a phone
+  number however it is typed ("3035550177" and "+1 303 555 0177" find "(303) 555-0177"). The
+  export's `--q` is the same search. Names starting with Ø, Ł, Æ and similar letters are filed
+  under their plain letter instead of "#".

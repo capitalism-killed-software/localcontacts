@@ -1,3 +1,4 @@
+import { fold, phoneMatches } from './fold';
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -70,6 +71,12 @@ function open(): DatabaseSync {
   // re-import. Cheap and idempotent.
   db.exec(`UPDATE contacts SET notes = replace(replace(notes, char(13) || char(10), char(10)), char(13), char(10))
            WHERE instr(notes, char(13)) > 0`);
+  // For search: fold() compares text without case or accents, phone_match()
+  // compares numbers by their digits (src/lib/fold.ts).
+  db.function('fold', { deterministic: true }, (v) => (v === null || v === undefined ? null : fold(String(v))));
+  db.function('phone_match', { deterministic: true }, (phone, others, typed) =>
+    phoneMatches(phone == null ? null : String(phone), others == null ? null : String(others), String(typed)) ? 1 : 0
+  );
   return db;
 }
 

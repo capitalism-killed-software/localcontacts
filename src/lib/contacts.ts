@@ -1,3 +1,4 @@
+import { fold } from './fold';
 import { getDb } from './db';
 import type { Photo, PhotoType } from './photo';
 
@@ -114,6 +115,10 @@ const FILTER_SQL: Record<ContactFilter, string | null> = {
 const TAG_RE = /^[A-Za-z0-9_.-]+$/;
 
 const SEARCH_COLUMNS = ['full_name', 'company', 'email', 'alt_emails', 'title', 'phone', 'alt_phones', 'notes', 'industry'];
+// Every searched column in one folded text, one column per line.
+const HAYSTACK = `fold(${SEARCH_COLUMNS.map((c) => `coalesce(${c}, '')`).join(' || char(10) || ')})`;
+const PHONEISH = /^[\d\s()+./-]+$/;
+const likeOf = (t: string) => `%${fold(t).replace(/[%_\\]/g, (m) => '\\' + m)}%`;
 
 export function listContacts(
   query?: string,
@@ -135,8 +140,8 @@ export function listContacts(
   if (source === 'untagged') {
     conditions.push('sources IS NULL');
   } else if (source !== 'all' && TAG_RE.test(source)) {
-    conditions.push(`(',' || sources || ',') LIKE ?`);
-    params.push(`%,${source},%`);
+    conditions.push(`lower(',' || sources || ',') LIKE ?`);
+    params.push(`%,${source.toLowerCase()},%`);
   }
 
   if (industry && industry !== 'all') {
@@ -149,9 +154,19 @@ export function listContacts(
   }
 
   if (q.length > 0) {
-    const like = `%${q.replace(/[%_\\]/g, (m) => '\\' + m)}%`;
-    conditions.push(`(${SEARCH_COLUMNS.map((c) => `${c} LIKE ? ESCAPE '\\'`).join(' OR ')})`);
-    for (let i = 0; i < SEARCH_COLUMNS.length; i++) params.push(like);
+    // Each word must appear somewhere (in any order), ignoring case and accents.
+    // A phone number typed with spaces is one term, and anything that looks like
+    // a number also matches stored numbers by their digits.
+    const terms = PHONEISH.test(q) && q.replace(/\D/g, '').length >= 7 ? [q] : q.split(/\s+/).filter(Boolean);
+    for (const t of terms) {
+      if (PHONEISH.test(t) && t.replace(/\D/g, '').length >= 4) {
+        conditions.push(`(${HAYSTACK} LIKE ? ESCAPE '\\' OR phone_match(phone, alt_phones, ?))`);
+        params.push(likeOf(t), t);
+      } else {
+        conditions.push(`${HAYSTACK} LIKE ? ESCAPE '\\'`);
+        params.push(likeOf(t));
+      }
+    }
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';

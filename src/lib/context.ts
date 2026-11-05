@@ -48,11 +48,13 @@ function getter(raw: RawParams): (k: string) => string {
 export function parseBook(raw: RawParams, opts: { knownTags?: Set<string> } = {}): BookParams {
   const get = getter(raw);
   const rawFilter = get('filter') as ContactFilter;
-  const rawSource = get('source') || 'all';
+  // Tags are compared without case, as the list and the export filter them.
+  const rawSource = (get('source') || 'all').toLowerCase();
+  const known = opts.knownTags ? new Set([...opts.knownTags].map((t) => t.toLowerCase())) : null;
   const sourceOk =
     rawSource === 'all' ||
     rawSource === 'untagged' ||
-    (opts.knownTags ? opts.knownTags.has(rawSource) : /^[A-Za-z0-9_.-]+$/.test(rawSource));
+    (known ? known.has(rawSource) : /^[A-Za-z0-9_.-]+$/.test(rawSource));
   const rawSort = get('sort');
   const id = parseId(get('id'));
   const isNew = get('new') === '1';

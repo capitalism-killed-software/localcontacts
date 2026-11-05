@@ -166,3 +166,39 @@ describe('line breaks', () => {
     expect(c.notes).toBe('first\nsecond\nthird');
   });
 });
+
+describe('search', () => {
+  const names = (q: string) => listContacts(q).map((c) => c.full_name).sort();
+  beforeEach(() => {
+    createContact({ full_name: 'Inès Lefèvre-Brontë', company: 'Café Société', email: 'ines@example.com' });
+    createContact({ full_name: 'Élodie Øvreås', phone: '(303) 555-0177' });
+    createContact({ full_name: 'José Núñez-Ibáñez', company: 'Ibérica Software', alt_phones: '+34 915 555 010' });
+    createContact({ full_name: 'Wendell Wordorder', company: 'Quarry Partners' });
+    createContact({ full_name: 'Łukasz Ostrowski' });
+  });
+
+  it('ignores case in every script and ignores accents', () => {
+    expect(names('élodie')).toEqual(['Élodie Øvreås']);
+    expect(names('ELODIE OVREAS')).toEqual(['Élodie Øvreås']);
+    expect(names('lefevre')).toEqual(['Inès Lefèvre-Brontë']);
+    expect(names('cafe societe')).toEqual(['Inès Lefèvre-Brontë']);
+    expect(names('nunez')).toEqual(['José Núñez-Ibáñez']);
+    expect(names('ibanez')).toEqual(['José Núñez-Ibáñez']);
+    expect(names('lukasz')).toEqual(['Łukasz Ostrowski']);
+  });
+
+  it('matches each word, in any order, across fields', () => {
+    expect(names('Wordorder Wendell')).toEqual(['Wendell Wordorder']);
+    expect(names('Wendell  Wordorder')).toEqual(['Wendell Wordorder']);
+    expect(names('wendell quarry')).toEqual(['Wendell Wordorder']);
+    expect(names('wendell ines')).toEqual([]);
+  });
+
+  it('finds a phone number however it is typed', () => {
+    for (const q of ['(303) 555-0177', '303-555-0177', '3035550177', '+1 303 555 0177', '+13035550177', '555-0177']) {
+      expect(names(q), q).toEqual(['Élodie Øvreås']);
+    }
+    expect(names('915 555 010')).toEqual(['José Núñez-Ibáñez']);
+    expect(names('+34915555010')).toEqual(['José Núñez-Ibáñez']);
+  });
+});
