@@ -31,15 +31,22 @@ npx next telemetry disable
 
 ## 2. With Docker (home server, NAS, any Linux box)
 
-The repo ships a `Dockerfile` and a `docker-compose.yml`. The container binds to
-`127.0.0.1:3000` on the host, so nothing outside the machine can reach it until you
-decide how (section 3).
+Each release is published as a ready-made image for Intel and ARM machines,
+`ghcr.io/capitalism-killed-software/localcontacts`, tagged with its version (`1.1.0`), its
+minor and major versions (`1.1`, `1`) and `latest`. The `docker-compose.yml` in the repo uses
+`:1`, which follows every 1.x release. The container binds to `127.0.0.1:3000` on the host, so
+nothing outside the machine can reach it until you decide how (section 3).
+
+All you need is the compose file:
 
 ```bash
-git clone https://github.com/capitalism-killed-software/localcontacts.git
-cd localcontacts
-docker compose up -d --build
+mkdir localcontacts && cd localcontacts
+curl -fsSLO https://raw.githubusercontent.com/capitalism-killed-software/localcontacts/main/docker-compose.yml
+docker compose up -d
 ```
+
+To build the image yourself instead, clone the repo, replace the `image:` line in
+`docker-compose.yml` with `build: .`, and run `docker compose up -d --build`.
 
 Your database is the `./data` folder next to the compose file, and `./imports` is mounted
 into the container for exports you want to import:
@@ -53,9 +60,11 @@ docker compose exec localcontacts npm run import -- --apply imports/contacts.vcf
 Update to a newer version:
 
 ```bash
-git pull
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 ```
+
+(If you build it yourself: `git pull`, then `docker compose up -d --build`.)
 
 The schema migrates itself on start, so an older database just works.
 

@@ -1,6 +1,10 @@
 services:
   localcontacts:
-    build: .
+    # The ready-made image, for Intel and ARM (a Raspberry Pi or a NAS too). `1`
+    # follows every 1.x release; write a version instead (:1.1.0) to update only
+    # when you choose. To build it yourself from this folder, replace the image
+    # line with:  build: .
+    image: ghcr.io/capitalism-killed-software/localcontacts:1
     container_name: localcontacts
     restart: unless-stopped
     # Bound to the host's loopback on purpose: reach it through a VPN, an SSH
