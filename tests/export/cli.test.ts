@@ -104,4 +104,38 @@ describe('export CLI', () => {
     expect(run('scripts/export.ts', db, ['--format=csv', '--filter=bogus']).status).toBe(1);
     expect(existsSync(join(dir, 'nothing.csv'))).toBe(false);
   });
+
+  it('restores groups, industry and dates, and re-importing into the same book changes nothing', () => {
+    const db1 = join(dir, 'one.db');
+    const crlf = join(dir, 'outlook-notes.csv');
+    writeFileSync(crlf, 'Name,Email,Notes\r\nNora Notes,nora@example.com,"Line one\r\nLine two"\r\n');
+    expect(run('scripts/import.ts', db1, ['--apply', ...FIXTURES, '--source=work_friends', crlf]).status).toBe(0);
+    const d = new DatabaseSync(db1);
+    d.exec("UPDATE contacts SET industry = 'Legal', last_contacted = '2026-01-02' WHERE full_name = 'Nora Notes'");
+    d.close();
+    const snapshot = (db: string) => {
+      const x = new DatabaseSync(db);
+      try {
+        return x.prepare('SELECT full_name, email, alt_emails, phone, alt_phones, urls, notes, company, title, connected_on, last_contacted, industry, sources, hex(photo) AS photo FROM contacts ORDER BY full_name, email').all();
+      } finally {
+        x.close();
+      }
+    };
+    const before = snapshot(db1);
+    expect(before.find((r) => r.full_name === 'Nora Notes')).toMatchObject({ notes: 'Line one\nLine two', sources: 'work_friends' });
+
+    for (const format of ['vcard', 'csv'] as const) {
+      const file = join(dir, `book.${format === 'vcard' ? 'vcf' : 'csv'}`);
+      expect(run('scripts/export.ts', db1, [`--format=${format}`, `--out=${file}`, '--force']).status).toBe(0);
+      // Into the same book: nothing new, nothing changed (no doubled notes, no "vcard" group).
+      const again = run('scripts/import.ts', db1, ['--apply', file]);
+      expect(again.status, again.err).toBe(0);
+      expect(snapshot(db1), format).toEqual(before);
+      // Into an empty book: the same cards, groups, industry and dates (CSV carries no photos).
+      const db2 = join(dir, `restore-${format}.db`);
+      expect(run('scripts/import.ts', db2, ['--apply', file]).status).toBe(0);
+      const strip = (rows: Record<string, unknown>[]) => rows.map((r) => (format === 'csv' ? { ...r, photo: null } : r));
+      expect(strip(snapshot(db2)), format).toEqual(strip(before));
+    }
+  });
 });

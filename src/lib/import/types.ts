@@ -32,6 +32,9 @@ export type IncomingContact = {
   last_contacted?: string | null;
   industry?: string | null;
   uid?: string | null; // the card's id within its file (vCard UID)
+  // The groups the card had in the book it was exported from; only read from
+  // localcontacts' own exports, and used instead of the file's default tag.
+  sources?: string[];
   photo?: Photo | null;
 };
 

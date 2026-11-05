@@ -182,3 +182,30 @@ describe('namesCompatible', () => {
     expect(namesCompatible('Reception', 'Jane Doe')).toBe(false);
   });
 });
+
+describe('stored notes with Windows line breaks', () => {
+  it('are rewritten with plain line breaks when the database opens, so a re-import finds them', async () => {
+    const { mkdtempSync, rmSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const { DatabaseSync } = await import('node:sqlite');
+    const { closeDb, getDb } = await import('../../src/lib/db');
+    const dir = mkdtempSync(join(tmpdir(), 'localcontacts-crlf-'));
+    const before = process.env.CONTACTS_DB_PATH;
+    try {
+      process.env.CONTACTS_DB_PATH = join(dir, 'contacts.db');
+      closeDb();
+      getDb();
+      closeDb();
+      const raw = new DatabaseSync(join(dir, 'contacts.db'));
+      raw.prepare('INSERT INTO contacts (full_name, notes) VALUES (?, ?)').run('Old Note', 'one\r\ntwo\rthree');
+      raw.close();
+      const notes = (getDb().prepare('SELECT notes FROM contacts').get() as { notes: string }).notes;
+      expect(notes).toBe('one\ntwo\nthree');
+    } finally {
+      closeDb();
+      process.env.CONTACTS_DB_PATH = before;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

@@ -54,7 +54,7 @@ function readFiles(files: ImportFile[]): { reports: FileReport[]; batches: Batch
     try {
       const res = parseText(text, format, { map: f.map ?? undefined });
       const source = f.source || defaultSource(format, res.sourceHint);
-      batches.push({ source, contacts: res.contacts });
+      batches.push({ source, contacts: res.contacts, explicit: !!f.source });
       reports.push({
         name: f.name,
         ok: true,

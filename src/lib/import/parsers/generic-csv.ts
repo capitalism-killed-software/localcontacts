@@ -1,6 +1,7 @@
 import type { IncomingContact, ParseResult } from '../types';
 import { clean, dedupeEmails, dedupePhones, dedupeStrings, defaultCountry, isoDate, joinName, NO_NAME } from '../normalize';
 import { headersOf, readCsv, type Row } from './csv';
+import { isTag } from '../tags';
 
 // Any CSV with a header row: a CRM export, a spreadsheet, another contacts app.
 // Columns are guessed from common header names; --map overrides per field.
@@ -43,6 +44,8 @@ const GUESS: Record<MappableField, (h: string) => boolean> = {
     ['url', 'website', 'web page', 'web', 'linkedin', 'linkedin url', 'profile', 'profile url', 'link'].includes(h) ||
     /^(url|website|link) \d+$/.test(h),
   connected_on: (h) => ['connected on', 'connected', 'date', 'created', 'created at', 'added', 'date added', 'since'].includes(h),
+  last_contacted: (h) => ['last contacted', 'last contact', 'last contacted on', 'last contact date'].includes(h),
+  industry: (h) => ['industry', 'sector'].includes(h),
   uid: (h) => ['id', 'uid', 'card id', 'contact id', 'record id'].includes(h),
 };
 
@@ -79,16 +82,24 @@ export function parseGenericCsv(text: string, map: FieldMap = {}): ParseResult {
   const country = defaultCountry();
   const contacts: IncomingContact[] = [];
   let skipped = 0;
+  // localcontacts' own CSV export: its rows carry ids like "localcontacts-12" and a
+  // Sources column with the card's groups, which come back as they were.
+  const sourcesCol = headers.includes('Sources') && cols.uid.length ? 'Sources' : null;
+  let ownRows = 0;
 
   for (const r of rows) {
     const name =
       values(r, cols.full_name)[0] ??
       joinName(values(r, cols.first_name)[0], values(r, cols.last_name)[0]);
     const org = values(r, cols.company)[0] ?? null;
+    const uid = values(r, cols.uid)[0] ?? null;
+    const own = !!sourcesCol && !!uid && /^localcontacts-\d+$/.test(uid);
+    if (own) ownRows++;
     const emails = dedupeEmails(values(r, cols.email));
     const phones = dedupePhones(values(r, cols.phone), country);
-    const display = name ?? org;
-    if (!display && emails.length === 0 && phones.length === 0) {
+    // Our own export leaves Name empty for a card without a name.
+    const display = own ? name : (name ?? org);
+    if (!display && !org && emails.length === 0 && phones.length === 0) {
       skipped++;
       continue;
     }
@@ -101,13 +112,17 @@ export function parseGenericCsv(text: string, map: FieldMap = {}): ParseResult {
       notes: values(r, cols.notes)[0] ?? null,
       urls: dedupeStrings(values(r, cols.url)),
       connected_on: isoDate(values(r, cols.connected_on)[0]),
-      uid: values(r, cols.uid)[0] ?? null,
+      last_contacted: isoDate(values(r, cols.last_contacted)[0]),
+      industry: values(r, cols.industry)[0] ?? null,
+      uid,
+      sources: own ? (clean(r[sourcesCol!]) ?? '').split(',').map((s) => s.trim()).filter(isTag) : undefined,
     });
   }
 
   const used = MAPPABLE.filter((f) => cols[f].length).map((f) => `${FIELD_LABELS[f]} ← ${cols[f].join(' + ')}`);
+  if (ownRows) used.push('groups ← Sources');
   const warnings = [`columns used: ${used.join('; ')}`];
-  const unused = headers.filter((h) => !MAPPABLE.some((f) => cols[f].includes(h)));
+  const unused = headers.filter((h) => !MAPPABLE.some((f) => cols[f].includes(h)) && !(ownRows && h === sourcesCol));
   if (unused.length) warnings.push(`columns ignored: ${unused.join(', ')}`);
   if (skipped) warnings.push(`${skipped} empty row(s) skipped`);
   return { contacts, warnings, sourceHint: null };

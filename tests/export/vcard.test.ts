@@ -78,7 +78,11 @@ describe('contactToVcard', () => {
       industry: 'Legal',
       uid: 'localcontacts-1',
       photo: null,
+      sources: ['apple', 'linkedin'], // the groups come back; the industry is not one of them
     });
+    // Another app's CATEGORIES are its own labels, not our groups.
+    const foreign = parseText(text.replace('PRODID:-//localcontacts//EN', 'PRODID:-//Apple Inc.//iPhone OS 17//EN'), 'vcard');
+    expect(foreign.contacts[0].sources).toBeUndefined();
   });
 
   it('falls back to company, email or phone for a nameless card', () => {

@@ -1,11 +1,10 @@
 import { isWriteFromApp } from '@/lib/hosts';
 import { cleanFieldMap } from '@/lib/import/fields';
 import { MAX_IMPORT_BYTES, MAX_IMPORT_FILES, TOO_LARGE_MESSAGE } from '@/lib/import/limits';
+import { tagProblem } from '@/lib/import/tags';
 import { runImport, type ImportFile } from '@/lib/import/run';
 
 export const dynamic = 'force-dynamic';
-
-const TAG = /^[A-Za-z0-9_.-]+$/;
 
 const fail = (status: number, error: string) => Response.json({ error }, { status, headers: { 'Cache-Control': 'no-store' } });
 
@@ -33,10 +32,8 @@ export async function POST(req: Request) {
   if (total > MAX_IMPORT_BYTES) return fail(413, TOO_LARGE_MESSAGE);
 
   const rawSource = String(form.get('source') ?? '').trim();
-  if (rawSource.length > 40) return fail(400, 'A source tag can be at most 40 characters long.');
-  if (rawSource && !TAG.test(rawSource)) {
-    return fail(400, 'A source tag may only use letters, digits, dots, dashes and underscores.');
-  }
+  const tagError = rawSource ? tagProblem(rawSource) : null;
+  if (tagError) return fail(400, tagError);
   const files: ImportFile[] = [];
   for (const [i, f] of uploads.entries()) {
     // Column choices for a generic CSV, as JSON: { "full_name": "Person", ... }

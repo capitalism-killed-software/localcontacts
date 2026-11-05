@@ -1,8 +1,12 @@
 import { parsePhoneNumberFromString, type CountryCode } from 'libphonenumber-js';
 
+// Line breaks are stored as \n whatever the file used (Windows \r\n, old Mac \r),
+// so a note reads the same after an export and an import.
+export const unixLines = (s: string): string => s.replace(/\r\n?/g, '\n');
+
 export const clean = (v: string | null | undefined): string | null => {
   if (v === null || v === undefined) return null;
-  const t = String(v).trim();
+  const t = unixLines(String(v)).trim();
   return t.length === 0 ? null : t;
 };
 

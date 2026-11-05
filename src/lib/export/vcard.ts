@@ -84,6 +84,9 @@ export function contactToVcard(c: Contact, photo: Photo | null = null): string {
   if (c.industry) out.push(`X-LOCALCONTACTS-INDUSTRY:${escapeText(c.industry)}`);
   if (c.connected_on) out.push(`X-LOCALCONTACTS-CONNECTED:${raw(c.connected_on)}`);
   if (c.last_contacted) out.push(`X-LOCALCONTACTS-LASTCONTACTED:${raw(c.last_contacted)}`);
+  // FN can't be empty, so a nameless card shows its company, email or phone there;
+  // this line tells our importer the card had no name.
+  if (!c.full_name || c.full_name === NO_NAME) out.push('X-LOCALCONTACTS-NONAME:TRUE');
   const r = rev(c.updated_at);
   if (r) out.push(`REV:${r}`);
   out.push('END:VCARD');

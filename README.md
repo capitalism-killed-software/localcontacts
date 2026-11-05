@@ -128,8 +128,9 @@ npm run export -- --format=csv --source=linkedin        # CSV to stdout, LinkedI
 The filters are the book's: `--q`, `--filter` (e.g. `no_email`), `--source`, `--industry`,
 `--sort`. vCard keeps every email, phone and link and imports into Apple, Google, Outlook,
 Proton and Android; CSV has one column per value (Email, Email 2, …) and opens in any
-spreadsheet. Both come back through `npm run import` unchanged. Each card in the book also has
-an **Export vCard** button.
+spreadsheet. Both come back through `npm run import` unchanged, groups, industry and dates
+included, and importing one into the book it came from changes nothing; only vCard carries
+photos. Each card in the book also has an **Export vCard** button.
 
 ## Run it as an app
 

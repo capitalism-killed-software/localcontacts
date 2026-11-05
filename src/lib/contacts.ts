@@ -43,9 +43,10 @@ export type ContactInput = {
   industry?: string | null;
 };
 
+// Text from the edit form; browsers send line breaks in a textarea as \r\n.
 const nullIfBlank = (v: string | null | undefined): string | null => {
   if (v === null || v === undefined) return null;
-  const t = v.trim();
+  const t = v.replace(/\r\n?/g, '\n').trim();
   return t.length === 0 ? null : t;
 };
 

@@ -53,3 +53,8 @@ The first public release.
   refused. Card ids in links are plain decimal numbers only, so `?id=1e3` no longer opens card
   1000. An import over 100 MB is refused before it is read, and the import page's messages name
   the real problem (a tag over 40 characters, an empty file).
+- Exports round-trip completely: groups, industry and the last-contacted date come back from
+  both vCard and CSV, a card without a name stays without one, and importing an export into the
+  book it came from changes nothing. Notes with Windows line breaks used to double on every
+  export and re-import; line breaks are now stored as `\n`, including notes already in the
+  database. CSV imports also read Industry and Last Contacted columns.

@@ -159,3 +159,10 @@ describe('deleteContact / countContacts', () => {
     expect(deleteContact(99999)).toBe(false);
   });
 });
+
+describe('line breaks', () => {
+  it('stores notes typed in the edit form with \\n line breaks', () => {
+    const c = createContact({ full_name: 'Line Breaks', notes: 'first\r\nsecond\rthird' });
+    expect(c.notes).toBe('first\nsecond\nthird');
+  });
+});

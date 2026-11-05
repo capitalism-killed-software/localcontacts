@@ -2,6 +2,7 @@ import type { IncomingContact, ParseResult } from '../types';
 import { stripBom } from '../detect';
 import { clean, dedupeEmails, dedupePhones, dedupeStrings, defaultCountry, isoDate, NO_NAME } from '../normalize';
 import { photoFromBase64, photoFromDataUri, type Photo, type PhotoResult } from '../../photo';
+import { isTag } from '../tags';
 
 // vCard 2.1, 3.0 and 4.0 as produced by Apple (iCloud, macOS, iPhone), Google,
 // Proton, Android, Outlook and Thunderbird. Keeps every email, phone and URL
@@ -25,6 +26,9 @@ type Card = {
   connected: string | null;
   contacted: string | null;
   industry: string | null;
+  own: boolean; // written by localcontacts' own export
+  nameless: boolean; // our export's marker for a card without a name
+  categories: string[];
 };
 
 const ENCODINGS = new Set(['QUOTED-PRINTABLE', 'BASE64', 'B', '8BIT', '7BIT']);
@@ -148,9 +152,10 @@ function decodeQP(s: string, charset: string): string {
 const unescapeText = (v: string): string =>
   v.replace(/\\([\\;,nN])/g, (_, c: string) => (c === 'n' || c === 'N' ? '\n' : c));
 
-// Split a structured value (N, ORG) on unescaped semicolons, then unescape
-// each part. A scanner rather than a regex, so an escaped backslash before ";" still splits but an escaped ";" does not.
-function splitComponents(v: string): string[] {
+// Split a structured value (N, ORG) on unescaped semicolons (CATEGORIES on
+// commas), then unescape each part. A scanner rather than a regex, so an escaped
+// backslash before ";" still splits but an escaped ";" does not.
+function splitComponents(v: string, sep = ';'): string[] {
   const parts: string[] = [];
   let cur = '';
   for (let i = 0; i < v.length; i++) {
@@ -158,7 +163,7 @@ function splitComponents(v: string): string[] {
     if (c === '\\' && i + 1 < v.length) {
       cur += c + v[i + 1];
       i++;
-    } else if (c === ';') {
+    } else if (c === sep) {
       parts.push(cur);
       cur = '';
     } else {
@@ -193,7 +198,7 @@ function hintFromProdId(v: string): string | null {
   return null;
 }
 
-const newCard = (): Card => ({ fn: null, n: null, emails: [], tels: [], org: null, title: null, notes: [], urls: [], photo: null, uid: null, connected: null, contacted: null, industry: null });
+const newCard = (): Card => ({ fn: null, n: null, emails: [], tels: [], org: null, title: null, notes: [], urls: [], photo: null, uid: null, connected: null, contacted: null, industry: null, own: false, nameless: false, categories: [] });
 
 const byPref = (a: Ranked, b: Ranked) => a.pref - b.pref || a.i - b.i;
 
@@ -207,7 +212,8 @@ function toContact(card: Card): IncomingContact | null {
     name = clean([given, additional, family].filter(Boolean).join(' '));
   }
   if (!name) name = card.org;
-  if (!name && emails.length === 0 && phones.length === 0) return null;
+  if (card.own && card.nameless) name = null;
+  if (!name && emails.length === 0 && phones.length === 0 && !card.org) return null;
   return {
     name: name ?? NO_NAME,
     emails,
@@ -221,6 +227,8 @@ function toContact(card: Card): IncomingContact | null {
     industry: card.industry,
     uid: card.uid,
     photo: card.photo,
+    // Our export lists the industry and the source groups in CATEGORIES.
+    sources: card.own ? card.categories.filter((c) => c !== card.industry && isTag(c)) : undefined,
   };
 }
 
@@ -269,6 +277,10 @@ export function parseVcard(text: string): ParseResult {
     switch (p.name) {
       case 'PRODID':
         sourceHint ??= hintFromProdId(v);
+        if (/^-\/\/localcontacts\/\/EN$/i.test(v.trim())) card.own = true;
+        break;
+      case 'CATEGORIES':
+        card.categories.push(...splitComponents(v, ',').filter(Boolean));
         break;
       case 'FN':
         if (!card.fn) card.fn = clean(unescapeText(v));
@@ -302,6 +314,9 @@ export function parseVcard(text: string): ParseResult {
         break;
       case 'X-LOCALCONTACTS-LASTCONTACTED':
         card.contacted = isoDate(v);
+        break;
+      case 'X-LOCALCONTACTS-NONAME':
+        card.nameless = /^true$/i.test(v.trim());
         break;
       case 'X-LOCALCONTACTS-INDUSTRY':
         card.industry = clean(unescapeText(v));

@@ -60,8 +60,11 @@ describe('contactsToCsv', () => {
       urls: ['https://a.example', 'https://b.example'],
       notes: 'line one\nline "two"',
       connected_on: '2024-01-15',
+      industry: 'Software / Technology',
+      sources: ['google', 'linkedin'],
     });
-    expect(back[1]).toMatchObject({ name: 'Acme', phones: ['+1 202 555 0102'] });
+    // A card without a name comes back without one, its company still its company.
+    expect(back[1]).toMatchObject({ name: '(no name)', org: 'Acme', phones: ['+1 202 555 0102'] });
   });
 
   it('writes just the header for an empty list', () => {

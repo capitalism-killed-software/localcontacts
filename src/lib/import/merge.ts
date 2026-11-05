@@ -46,7 +46,9 @@ export type Rec = {
   dirty: boolean; // existing row that changed and needs an UPDATE
 };
 
-export type Batch = { source: string; contacts: IncomingContact[] };
+// explicit: the tag was chosen by the user (--source, the import page), so it is
+// added even to cards that bring their own groups from a localcontacts export.
+export type Batch = { source: string; contacts: IncomingContact[]; explicit?: boolean };
 
 export type MergeStats = {
   incoming: number;
@@ -103,7 +105,8 @@ export function recToColumns(rec: Rec) {
   };
 }
 
-function fromIncoming(c: IncomingContact, source: string, batch: number): Rec {
+function fromIncoming(c: IncomingContact, source: string, batch: number, explicit = false): Rec {
+  const own = c.sources?.length ? c.sources : null;
   return {
     id: null,
     full_name: c.name,
@@ -116,7 +119,7 @@ function fromIncoming(c: IncomingContact, source: string, batch: number): Rec {
     connected_on: c.connected_on,
     last_contacted: c.last_contacted ?? null,
     industry: c.industry ?? null,
-    sources: [source],
+    sources: own ? (explicit ? [...own, source] : [...own]) : [source],
     batch,
     uid: c.uid ?? null,
     hasPhoto: !!c.photo,
@@ -309,7 +312,7 @@ export function planMerge(
   for (const [b, batch] of batches.entries()) {
     for (const c of batch.contacts) {
       stats.incoming++;
-      const inc = fromIncoming(c, batch.source, b);
+      const inc = fromIncoming(c, batch.source, b, batch.explicit);
       const found = find(inc);
       if (found) {
         const target = found.hit;

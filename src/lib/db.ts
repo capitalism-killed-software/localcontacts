@@ -65,6 +65,11 @@ function open(): DatabaseSync {
   // with the rest of a contact; the bytes are fetched on their own.
   if (!names.has('photo')) db.exec(`ALTER TABLE contacts ADD COLUMN photo BLOB`);
   if (!names.has('photo_type')) db.exec(`ALTER TABLE contacts ADD COLUMN photo_type TEXT`);
+  // Notes are stored with \n line breaks; older versions kept \r\n from Windows
+  // files and from the edit form, which doubled the note on every export and
+  // re-import. Cheap and idempotent.
+  db.exec(`UPDATE contacts SET notes = replace(replace(notes, char(13) || char(10), char(10)), char(13), char(10))
+           WHERE instr(notes, char(13)) > 0`);
   return db;
 }
 

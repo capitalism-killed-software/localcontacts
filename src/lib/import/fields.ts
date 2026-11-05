@@ -3,7 +3,7 @@
 
 export const MAPPABLE = [
   'full_name', 'first_name', 'last_name', 'email', 'phone',
-  'company', 'title', 'notes', 'url', 'connected_on', 'uid',
+  'company', 'title', 'notes', 'url', 'connected_on', 'last_contacted', 'industry', 'uid',
 ] as const;
 export type MappableField = (typeof MAPPABLE)[number];
 export type FieldMap = Partial<Record<MappableField, string>>;
@@ -19,6 +19,8 @@ export const FIELD_LABELS: Record<MappableField, string> = {
   notes: 'note',
   url: 'link',
   connected_on: 'connected',
+  last_contacted: 'last contacted',
+  industry: 'industry',
   uid: 'card id',
 };
 
