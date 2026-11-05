@@ -251,7 +251,7 @@ export default function NamesList({ version, footerStart }: { version: string; f
           <p className="names-empty">
             No cards.{' '}
             {!qs && (
-              <Link href={bookHref(qs, { import: true })} scroll={false} prefetch={false} className="names-import">
+              <Link href={bookHref(qs, { sheet: 'import' })} scroll={false} prefetch={false} className="names-import">
                 Import contacts…
               </Link>
             )}

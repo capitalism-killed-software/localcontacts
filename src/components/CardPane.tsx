@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import type { Contact } from '@/lib/contacts';
+import type { Sheet } from '@/lib/context';
 import CardEdit, { CARD_FORM_ID } from './CardEdit';
 import CardView from './CardView';
 import DeleteButton from './DeleteButton';
 import ImportPanel from './ImportPanel';
 import Silhouette from './Silhouette';
 
-export type CardMode = 'empty' | 'missing' | 'view' | 'edit' | 'new' | 'import';
+export type CardMode = 'empty' | 'welcome' | 'missing' | 'view' | 'edit' | 'new' | Sheet;
 
 type Action = (fd: FormData) => void | Promise<void>;
 
@@ -83,6 +84,20 @@ export default function CardPane({
         <Link href={listHref} scroll={false} prefetch={false} className="btn">
           Close
         </Link>
+      );
+      break;
+    case 'welcome':
+      body = (
+        <div className="card card-blank welcome">
+          <Silhouette />
+          <h2 className="welcome-title">Your address book is empty</h2>
+          <Link href={importHref} scroll={false} prefetch={false} className="quiet-link">
+            Bring in my contacts…
+          </Link>
+          <Link href="/help/export" prefetch={false} className="quiet-link">
+            Where do I get my contacts?
+          </Link>
+        </div>
       );
       break;
     case 'missing':

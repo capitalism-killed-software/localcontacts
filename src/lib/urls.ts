@@ -3,6 +3,8 @@
 // open. Context survives every navigation and is what server actions redirect
 // back to; selection is rebuilt per link.
 
+import type { Sheet } from './context';
+
 export type ContextInput = {
   q?: string | null;
   filter?: string | null;
@@ -35,14 +37,16 @@ export function contextQs(input: URLSearchParams | ContextInput): string {
   return p.toString();
 }
 
-export type Selection = { id?: number | null; edit?: boolean; new?: boolean; import?: boolean };
+export type Selection = { id?: number | null; edit?: boolean; new?: boolean; sheet?: Sheet };
 
 export function bookHref(qs: string, sel: Selection = {}): string {
   const p = new URLSearchParams(qs);
   if (sel.new) {
     p.set('new', '1');
-  } else if (sel.import) {
+  } else if (sel.sheet === 'import') {
     p.set('import', '1');
+  } else if (sel.sheet) {
+    p.set('sheet', sel.sheet);
   } else if (sel.id != null && Number.isFinite(sel.id) && sel.id > 0) {
     p.set('id', String(sel.id));
     if (sel.edit) p.set('edit', '1');

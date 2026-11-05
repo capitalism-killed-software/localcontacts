@@ -789,6 +789,12 @@ body {
   .card-blank-text {
     margin: 0;
   }
+  .welcome-title {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
 
   /* ------------------------------------------------------------- import */
   .import-panel .card-company a {

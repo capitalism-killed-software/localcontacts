@@ -20,6 +20,12 @@ export const FILTER_KEYS = new Set<ContactFilter>([
 
 const VIEW_SORT_KEYS = new Set<string>(VIEW_SORTS.map((s) => s.value));
 
+// The sheets that can take the card's place on the right page. The import sheet
+// keeps its old address (?import=1); the others are ?sheet=<name>.
+export const SHEETS = ['import', 'guide', 'tidy', 'backups', 'export', 'about'] as const;
+export type Sheet = (typeof SHEETS)[number];
+const SHEET_KEYS = new Set<string>(SHEETS);
+
 export type BookParams = {
   q: string;
   filter: ContactFilter;
@@ -29,7 +35,7 @@ export type BookParams = {
   dir: 'desc' | null;
   id: number | null;
   isNew: boolean;
-  isImport: boolean;
+  sheet: Sheet | null;
   edit: boolean;
 };
 
@@ -60,7 +66,8 @@ export function parseBook(raw: RawParams, opts: { knownTags?: Set<string> } = {}
   const rawSort = get('sort');
   const id = parseId(rawId ?? null);
   const isNew = get('new') === '1';
-  const isImport = !isNew && get('import') === '1';
+  const rawSheet = get('sheet');
+  const sheet: Sheet | null = isNew ? null : get('import') === '1' ? 'import' : SHEET_KEYS.has(rawSheet) ? (rawSheet as Sheet) : null;
   return {
     q: get('q'),
     filter: FILTER_KEYS.has(rawFilter) ? rawFilter : 'all',
@@ -70,8 +77,8 @@ export function parseBook(raw: RawParams, opts: { knownTags?: Set<string> } = {}
     dir: get('dir') === 'desc' ? 'desc' : null,
     id,
     isNew,
-    isImport,
-    edit: !isNew && !isImport && id !== null && get('edit') === '1',
+    sheet,
+    edit: !isNew && !sheet && id !== null && get('edit') === '1',
   };
 }
 

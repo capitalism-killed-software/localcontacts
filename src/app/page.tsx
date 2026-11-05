@@ -24,16 +24,16 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
   const searchParams = await props.searchParams;
   const srcCounts = sourceCounts();
   const knownTags = new Set(srcCounts.tags.map((t) => t.tag));
-  const { q, filter, source, industry, viewSort, dir, id, isNew, isImport, edit } = parseBook(searchParams, { knownTags });
+  const { q, filter, source, industry, viewSort, dir, id, isNew, sheet, edit } = parseBook(searchParams, { knownTags });
 
   const stats = contactStats();
   const indCounts = industryCounts();
-  const selected = !isNew && !isImport && id ? getContact(id) : null;
+  const selected = !isNew && !sheet && id ? getContact(id) : null;
 
   const context = { q, filter, source, industry, sort: viewSort, dir: dir ?? '' };
   const qs = contextQs(context);
-  const selId = isNew || isImport ? null : id;
-  const importHref = bookHref(qs, { import: true });
+  const selId = isNew || sheet ? null : id;
+  const importHref = bookHref(qs, { sheet: 'import' });
   const hrefWith = (over: ContextOverride & { sort?: string }) =>
     bookHref(contextQs({ ...context, ...over }), { id: selId });
 
@@ -41,16 +41,18 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
 
   const cardMode: CardMode = isNew
     ? 'new'
-    : isImport
-      ? 'import'
+    : sheet
+      ? sheet
       : !id
-        ? 'empty'
+        ? stats.total === 0
+          ? 'welcome'
+          : 'empty'
         : !selected
           ? 'missing'
           : edit
             ? 'edit'
             : 'view';
-  const view = isNew || isImport || id ? 'card' : 'list';
+  const view = isNew || sheet || id ? 'card' : 'list';
 
   const activeGroupKey = groups.all.active
     ? groups.all.key
