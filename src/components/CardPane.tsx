@@ -8,6 +8,7 @@ import BackupsPanel, { type BackupRow, type UndoImport } from './BackupsPanel';
 import ExportPanel from './ExportPanel';
 import ImportPanel from './ImportPanel';
 import TidyPanel from './TidyPanel';
+import GuidePanel, { type GuideService } from './GuidePanel';
 import type { TidyData } from '@/lib/cleanup/sheet';
 import Silhouette from './Silhouette';
 
@@ -27,6 +28,8 @@ export default function CardPane({
   exporting,
   tidy,
   tidyHref,
+  guide,
+  guideHref,
   contact,
   listHref,
   viewHref,
@@ -44,6 +47,8 @@ export default function CardPane({
   exporting: { scope: string; count: number; total: number; qs: string; allHref: string | null } | null;
   tidy: { data: TidyData; hrefFor: Record<string, string> } | null;
   tidyHref: string;
+  guide: GuideService[] | null;
+  guideHref: string;
   contact: Contact | null;
   listHref: string;
   viewHref: string;
@@ -97,7 +102,15 @@ export default function CardPane({
       );
       break;
     case 'import':
-      body = <ImportPanel doneHref={listHref} backupsHref={backupsHref} tidyHref={tidyHref} sampleCount={sampleCount} />;
+      body = <ImportPanel doneHref={listHref} backupsHref={backupsHref} tidyHref={tidyHref} guideHref={guideHref} sampleCount={sampleCount} />;
+      footer = (
+        <Link href={listHref} scroll={false} prefetch={false} className="btn">
+          Close
+        </Link>
+      );
+      break;
+    case 'guide':
+      body = guide && <GuidePanel services={guide} importHref={importHref} tidyHref={tidyHref} />;
       footer = (
         <Link href={listHref} scroll={false} prefetch={false} className="btn">
           Close
@@ -135,7 +148,7 @@ export default function CardPane({
           <h2 className="welcome-title">Your address book is empty</h2>
           <p className="card-blank-text">Everything stays on this computer.</p>
           <div className="welcome-actions">
-            <Link href={importHref} scroll={false} prefetch={false} className="btn btn-done">
+            <Link href={guideHref} scroll={false} prefetch={false} className="btn btn-done">
               Bring in my contacts…
             </Link>
             <form action={loadSample}>

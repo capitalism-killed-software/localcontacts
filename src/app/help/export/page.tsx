@@ -1,7 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { exportGuide } from '@/lib/export-guide';
 import { markdownToHtml } from '@/lib/markdown';
 
 // The export guide from docs/, rendered when the app is built, so it works
@@ -10,7 +9,7 @@ export const dynamic = 'force-static';
 export const metadata: Metadata = { title: 'Exporting your contacts · Contacts' };
 
 export default function ExportHelp() {
-  const md = readFileSync(join(process.cwd(), 'docs', 'exporting-your-contacts.md'), 'utf-8');
+  const md = exportGuide();
   return (
     <div className="desk help-desk">
       <article className="help-sheet">

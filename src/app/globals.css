@@ -816,6 +816,68 @@ body {
     color: #5c4c00;
     font-size: 11px;
   }
+  .guide-step {
+    margin: 16px 0 6px;
+    font-size: 13px;
+  }
+  .guide-choices {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    columns: 2;
+    column-gap: 16px;
+  }
+  .guide-choices li {
+    padding: 2px 0;
+    break-inside: avoid;
+  }
+  .guide-slot {
+    margin: 10px 0 0;
+    padding: 8px 12px 10px;
+    border: 1px solid #d8d8d8;
+    border-radius: 6px;
+  }
+  .guide-slot.is-done {
+    border-color: #a9d3a0;
+    background: #f6fbf4;
+  }
+  .guide-slot-title {
+    margin: 0 0 2px;
+    font-size: 13px;
+  }
+  .guide-mark {
+    display: inline-block;
+    width: 1em;
+    color: var(--label);
+  }
+  .guide-slot.is-done .guide-mark {
+    color: #2e8b2e;
+  }
+  .guide-slot details {
+    margin: 6px 0;
+  }
+  .guide-slot summary {
+    cursor: pointer;
+    color: var(--link);
+  }
+  .guide-steps {
+    margin-top: 6px;
+    font-size: 12px;
+  }
+  .guide-link {
+    margin: 4px 0 8px;
+  }
+  .guide-link a {
+    color: var(--link);
+  }
+  .guide-drop {
+    min-height: 70px;
+  }
+  .guide-warning {
+    flex-basis: 100%;
+    margin: 4px 0 0;
+    color: #8a5a00;
+  }
   .tidy-tabs {
     display: flex;
     gap: 4px;

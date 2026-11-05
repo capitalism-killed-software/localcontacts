@@ -19,6 +19,9 @@ import { backupsDir, describeBackup, formatWhen, lastImport, listBackups } from 
 import { fileSize } from '@/lib/format';
 import { bookRows } from '@/lib/export/book';
 import { TIDY_TABS, tidyData, type TidyData } from '@/lib/cleanup/sheet';
+import { guideSections } from '@/lib/export-guide';
+import { SERVICES } from '@/lib/import/services';
+import type { GuideService } from '@/components/GuidePanel';
 import type { BackupRow, UndoImport } from '@/components/BackupsPanel';
 import { bookHref, contextQs } from '@/lib/urls';
 
@@ -43,6 +46,7 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
   const backupsHref = bookHref(qs, { sheet: 'backups' });
   const exportHref = bookHref(qs, { sheet: 'export' });
   const tidyHref = bookHref(qs, { sheet: 'tidy' });
+  const guideHref = bookHref(qs, { sheet: 'guide' });
   const hrefWith = (over: ContextOverride & { sort?: string }) =>
     bookHref(contextQs({ ...context, ...over }), { id: selId });
 
@@ -76,6 +80,14 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
       qs,
       allHref: qs ? bookHref('', { sheet: 'export' }) : null,
     };
+  }
+
+  // The guided import: each service with its export steps and how many of its cards are here.
+  let guide: GuideService[] | null = null;
+  if (sheet === 'guide') {
+    const sections = guideSections();
+    const byTag = new Map(srcCounts.tags.map((t) => [t.tag, t.count]));
+    guide = SERVICES.map((s) => ({ ...s, html: sections.get(s.section)?.html ?? '', count: s.tag ? (byTag.get(s.tag) ?? 0) : 0 }));
   }
 
   // The clean-up sheet: one tab and page at a time (?tab=names&page=2).
@@ -115,6 +127,7 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
     : groups.sections.flatMap((s) => s.items).find((i) => i.active)?.key ?? groups.all.key;
   // The other sheets, from the "More" menu under the groups (and, on a phone, the groups menu).
   const sheetLinks = [
+    { value: 'guide', label: 'Guided import…', href: guideHref },
     { value: 'tidy', label: 'Clean up…', href: tidyHref },
     { value: 'export', label: 'Export…', href: exportHref },
     { value: 'backups', label: 'Backups…', href: backupsHref },
@@ -170,6 +183,8 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
           exporting={exporting}
           tidy={tidy}
           tidyHref={tidyHref}
+          guide={guide}
+          guideHref={guideHref}
           contact={selected}
           listHref={bookHref(qs)}
           viewHref={bookHref(qs, { id })}

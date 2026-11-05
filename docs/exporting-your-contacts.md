@@ -185,11 +185,8 @@ get a CSV of names and emails, which the generic CSV import reads.
 
 HubSpot, Pipedrive, Salesforce and most other tools export contacts to CSV. Save spreadsheets
 as CSV first. The importer guesses common column names (Name, Email, Phone, Company, Title,
-Notes, URL, and numbered versions such as Email 2). If it guesses wrong, name the columns:
-
-```bash
-npm run import -- --map=full_name="Contact Name",email="Work Email",phone=Mobile crm.csv
-```
+Notes, URL, and numbered versions such as Email 2). If it guesses wrong, **Import…** in the book
+lets you choose which column holds what (on the command line, `--map`; see the README).
 
 ## Getting contacts back out
 

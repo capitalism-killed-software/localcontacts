@@ -22,6 +22,7 @@ export type FileReport = {
   label?: string;
   count?: number;
   source?: string;
+  detected?: string; // the group the file itself suggests, even when a tag was given for it
   warnings: string[];
   error?: string;
   headers?: string[]; // a generic CSV's columns, so the page can offer mapping
@@ -69,6 +70,7 @@ function readFiles(files: ImportFile[]): { reports: FileReport[]; batches: Batch
         label: FORMAT_LABELS[format],
         count: res.contacts.length,
         source,
+        detected: defaultSource(format, res.sourceHint),
         warnings: note ? [note, ...res.warnings] : res.warnings,
         headers,
       });

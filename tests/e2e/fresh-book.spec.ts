@@ -144,3 +144,38 @@ test('clean-up: names and industries are previewed, then applied for the ones le
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText('Riverside Dental Clinic');
 });
+
+test('the guided import: pick your services, follow the steps, and each one ticks itself when its file is in', async ({ page }) => {
+  await page.goto('/?sheet=guide');
+  const sheet = page.locator('.guide-panel');
+  // Apple's cards are already in the book (imported above), so it is chosen and ticked.
+  await expect(sheet.getByRole('checkbox', { name: /Apple/ })).toBeChecked();
+  await expect(sheet.locator('.guide-slot[data-service=apple]')).toHaveClass(/is-done/);
+
+  await sheet.getByRole('checkbox', { name: 'Google Contacts' }).check();
+  await sheet.getByRole('checkbox', { name: 'LinkedIn' }).check();
+  const google = sheet.locator('.guide-slot[data-service=google]');
+  const linkedin = sheet.locator('.guide-slot[data-service=linkedin]');
+  await expect(linkedin).not.toHaveClass(/is-done/);
+  await expect(linkedin.getByRole('link', { name: /Open LinkedIn/ })).toHaveAttribute('href', 'https://www.linkedin.com/help/linkedin/answer/a566336');
+  await expect(linkedin.locator('details')).toContainText('Download your data');
+
+  // A LinkedIn file dropped in the Google slot: a warning, not a refusal.
+  await google.locator('input[type=file]').setInputFiles([fixture('linkedin-Connections.csv')]);
+  await expect(google.locator('.guide-warning')).toContainText('LinkedIn');
+  await expect(google.getByRole('button', { name: /^Import/ })).toBeVisible();
+  await google.getByRole('button', { name: /^Remove/ }).click();
+  await expect(google.locator('.guide-warning')).toHaveCount(0);
+
+  // In its own slot it imports, in the LinkedIn group, and the slot ticks itself.
+  await linkedin.locator('input[type=file]').setInputFiles([fixture('linkedin-Connections.csv')]);
+  await linkedin.getByRole('button', { name: /^Import/ }).click();
+  await expect(linkedin).toHaveClass(/is-done/);
+  await expect(page.locator('.groups-pane')).toContainText('LinkedIn');
+
+  // The choices are remembered on this computer.
+  await page.reload();
+  await expect(sheet.getByRole('checkbox', { name: 'Google Contacts' })).toBeChecked();
+  await expect(sheet.locator('.guide-slot[data-service=linkedin]')).toHaveClass(/is-done/);
+  await expect(sheet.getByRole('link', { name: /Look for duplicates/ })).toBeVisible();
+});
