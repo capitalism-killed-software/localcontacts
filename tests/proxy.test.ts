@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { proxy } from '../src/proxy';
 import nextConfig from '../next.config.mjs';
@@ -55,3 +55,29 @@ describe('frame protection', () => {
     expect(re.test('/api/photo/12')).toBe(false);
   });
 });
+
+describe('content policy', () => {
+  it('lets a production page connect only to itself and GitHub (for the update check)', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      const rules = await nextConfig.headers!();
+      const csp = rules.find((r) => r.source === '/')!.headers.find((h) => h.key === 'Content-Security-Policy')!.value;
+      expect(csp).toContain("frame-ancestors 'none'");
+      expect(csp).toContain("connect-src 'self' https://api.github.com");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('leaves connections alone while developing (live reload needs its own)', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    try {
+      const rules = await nextConfig.headers!();
+      const csp = rules.find((r) => r.source === '/')!.headers.find((h) => h.key === 'Content-Security-Policy')!.value;
+      expect(csp).toBe("frame-ancestors 'none'");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+

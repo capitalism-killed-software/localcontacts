@@ -22,6 +22,8 @@ import { TIDY_TABS, tidyData, type TidyData } from '@/lib/cleanup/sheet';
 import { guideSections } from '@/lib/export-guide';
 import { SERVICES } from '@/lib/import/services';
 import type { GuideService } from '@/components/GuidePanel';
+import { databaseLabel } from '@/components/Book';
+import pkg from '../../package.json';
 import type { BackupRow, UndoImport } from '@/components/BackupsPanel';
 import { bookHref, contextQs } from '@/lib/urls';
 
@@ -47,6 +49,7 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
   const exportHref = bookHref(qs, { sheet: 'export' });
   const tidyHref = bookHref(qs, { sheet: 'tidy' });
   const guideHref = bookHref(qs, { sheet: 'guide' });
+  const aboutHref = bookHref(qs, { sheet: 'about' });
   const hrefWith = (over: ContextOverride & { sort?: string }) =>
     bookHref(contextQs({ ...context, ...over }), { id: selId });
 
@@ -131,6 +134,7 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
     { value: 'tidy', label: 'Clean up…', href: tidyHref },
     { value: 'export', label: 'Export…', href: exportHref },
     { value: 'backups', label: 'Backups…', href: backupsHref },
+    { value: 'about', label: 'About localcontacts', href: aboutHref },
   ];
   const moreMenu = <NavSelect className="sort-select more-select" ariaLabel="More" placeholder="More" value="" options={sheetLinks} />;
   const groupsSelect = (
@@ -185,6 +189,7 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
           tidyHref={tidyHref}
           guide={guide}
           guideHref={guideHref}
+          about={sheet === 'about' ? { version: pkg.version, database: databaseLabel(), backups: backupsDir() } : null}
           contact={selected}
           listHref={bookHref(qs)}
           viewHref={bookHref(qs, { id })}

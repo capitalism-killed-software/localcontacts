@@ -18,8 +18,13 @@ home server you control. Its safety comes from not being reachable by anyone els
   runs: the browser's `Origin` must be the app itself, so another site open in your browser
   cannot change your data. No other site may show the app in a frame, so its buttons can't be
   clicked through a disguised page.
-- **No network calls.** It never fetches anything: not updates, not analytics, not photos
-  linked from a vCard.
+- **No network calls of its own.** The server never fetches anything: not updates, not
+  analytics, not photos linked from a vCard. The only request to the internet is the one you
+  make with **Check for updates** on the About sheet: your browser asks GitHub's API for the
+  latest release of this project, with no cookies and no referrer. In a production build the
+  pages' `Content-Security-Policy` allows connections only to the app itself and
+  `https://api.github.com`, so the browser refuses anything else, and the service worker
+  leaves requests to other sites alone so that policy applies to them.
 - **Untrusted files are treated as data.** Imported text is escaped when shown, links become
   clickable only if they are web, mail or phone links, and photos are accepted only when their
   bytes are a JPEG, PNG, GIF or WebP image of at most 2 MB. Photos are served with

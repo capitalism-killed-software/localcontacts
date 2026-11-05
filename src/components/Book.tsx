@@ -4,7 +4,7 @@ import { relative, isAbsolute } from 'node:path';
 import { dbPath } from '@/lib/db';
 
 // Where the database is, as the footer shows it: relative to the app when it is inside it.
-function databaseLabel(): string {
+export function databaseLabel(): string {
   const path = dbPath();
   if (path === ':memory:') return 'memory';
   const rel = relative(process.cwd(), path);

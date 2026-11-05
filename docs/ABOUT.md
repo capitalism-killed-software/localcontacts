@@ -26,11 +26,15 @@ Contacts are personal data twice over. They are yours, and they are also every o
 person's name, employer, phone number and email, which those people gave you and not to a
 third party. The design rules follow from that:
 
-- **Nothing leaves your machine.** The app makes no network calls; a contact photo that is
-  only a web link in a vCard is skipped rather than fetched. There is no sign-up,
-  no sync, no telemetry, no analytics, no update check. Next.js's own anonymous telemetry
-  is switched off in the Docker image, and you can switch it off for a local install with
-  `npx next telemetry disable`.
+- **Nothing leaves your machine.** The app makes no network calls of its own; a contact
+  photo that is only a web link in a vCard is skipped rather than fetched. There is no
+  sign-up, no sync, no telemetry, no analytics, and no automatic update check. The one
+  exception is a button you press: **Check for updates** on the About sheet asks GitHub for
+  the number of the latest release. GitHub sees your IP address, as any website would, and
+  nothing about your contacts. In a production build the page's content policy lets the
+  browser connect only to the app and to GitHub's API, so nothing else can be contacted
+  even by mistake. Next.js's own anonymous telemetry is switched off in the Docker image, and
+  you can switch it off for a local install with `npx next telemetry disable`.
 - **No AI touches your contacts.** No model reads, enriches, classifies or summarises the
   people in your list. The one classifier that exists (industry, from company and title)
   is a table of keywords you can read and edit. Inventing facts about real people is a

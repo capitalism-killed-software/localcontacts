@@ -816,6 +816,19 @@ body {
     color: #5c4c00;
     font-size: 11px;
   }
+  .about-promises {
+    margin: 0;
+    padding-left: 18px;
+  }
+  .about-promises li {
+    margin: 0 0 8px;
+  }
+  .about-promises code {
+    overflow-wrap: anywhere;
+  }
+  .update-result a {
+    color: var(--link);
+  }
   .guide-step {
     margin: 16px 0 6px;
     font-size: 13px;

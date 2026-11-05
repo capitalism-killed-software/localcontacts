@@ -9,6 +9,7 @@ import ExportPanel from './ExportPanel';
 import ImportPanel from './ImportPanel';
 import TidyPanel from './TidyPanel';
 import GuidePanel, { type GuideService } from './GuidePanel';
+import AboutPanel from './AboutPanel';
 import type { TidyData } from '@/lib/cleanup/sheet';
 import Silhouette from './Silhouette';
 
@@ -30,6 +31,7 @@ export default function CardPane({
   tidyHref,
   guide,
   guideHref,
+  about,
   contact,
   listHref,
   viewHref,
@@ -49,6 +51,7 @@ export default function CardPane({
   tidyHref: string;
   guide: GuideService[] | null;
   guideHref: string;
+  about: { version: string; database: string; backups: string | null } | null;
   contact: Contact | null;
   listHref: string;
   viewHref: string;
@@ -103,6 +106,14 @@ export default function CardPane({
       break;
     case 'import':
       body = <ImportPanel doneHref={listHref} backupsHref={backupsHref} tidyHref={tidyHref} guideHref={guideHref} sampleCount={sampleCount} />;
+      footer = (
+        <Link href={listHref} scroll={false} prefetch={false} className="btn">
+          Close
+        </Link>
+      );
+      break;
+    case 'about':
+      body = about && <AboutPanel {...about} />;
       footer = (
         <Link href={listHref} scroll={false} prefetch={false} className="btn">
           Close
