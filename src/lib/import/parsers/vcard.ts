@@ -123,7 +123,8 @@ function parseProp(line: string): Prop | null {
   return { name, params, value };
 }
 
-function decodeQP(s: string, charset: string): string {
+// charset null: none given; UTF-8 if the bytes are UTF-8, else Windows-1252.
+function decodeQP(s: string, charset: string | null): string {
   const bytes: number[] = [];
   for (let i = 0; i < s.length; i++) {
     const c = s[i];
@@ -139,11 +140,19 @@ function decodeQP(s: string, charset: string): string {
     if (code < 128) bytes.push(code);
     else bytes.push(...Buffer.from(c, 'utf-8'));
   }
-  const label = charset.toLowerCase() === 'utf8' ? 'utf-8' : charset.toLowerCase();
+  const data = Uint8Array.from(bytes);
+  if (charset) {
+    const label = charset.toLowerCase() === 'utf8' ? 'utf-8' : charset.toLowerCase();
+    try {
+      return new TextDecoder(label).decode(data);
+    } catch {
+      // an unknown charset name: guess below
+    }
+  }
   try {
-    return new TextDecoder(label).decode(Uint8Array.from(bytes));
+    return new TextDecoder('utf-8', { fatal: true }).decode(data);
   } catch {
-    return new TextDecoder('utf-8').decode(Uint8Array.from(bytes));
+    return new TextDecoder('windows-1252').decode(data);
   }
 }
 
@@ -178,7 +187,7 @@ function splitComponents(v: string, sep = ';'): string[] {
 function decodeValue(p: Prop): string | null {
   const enc = p.params.get('ENCODING')?.[0];
   if (enc === 'B' || enc === 'BASE64') return null;
-  if (enc === 'QUOTED-PRINTABLE') return decodeQP(p.value, p.params.get('CHARSET')?.[0] ?? 'utf-8');
+  if (enc === 'QUOTED-PRINTABLE') return decodeQP(p.value, p.params.get('CHARSET')?.[0] ?? null);
   return p.value;
 }
 

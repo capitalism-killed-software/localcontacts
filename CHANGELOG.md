@@ -58,3 +58,9 @@ The first public release.
   book it came from changes nothing. Notes with Windows line breaks used to double on every
   export and re-import; line breaks are now stored as `\n`, including notes already in the
   database. CSV imports also read Industry and Last Contacted columns.
+- Files are read more faithfully: a CSV whose first row leaves trailing cells out no longer
+  loses those columns for every row; repeated headers (two Email columns) are both read;
+  semicolon- and tab-separated files are recognised. Text that isn't UTF-8 (Excel and classic
+  Outlook often write Windows-1252, vCards may name a `CHARSET`) is decoded instead of becoming
+  "�", with a note in the summary, and a vCard line folded in the middle of a character is put
+  back together.

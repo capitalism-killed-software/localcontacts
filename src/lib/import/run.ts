@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { dbPath, getDb } from '../db';
-import { csvHeader, decodeFileBytes, detect, unknownHint } from './detect';
+import { csvHeader, decodeFile, detect, unknownHint } from './detect';
 import { defaultSource, parseText } from './index';
 import { planMerge, recToColumns, type Batch, type ExistingRow, type MergeStats } from './merge';
 import { defaultCountry } from './normalize';
@@ -44,7 +44,7 @@ function readFiles(files: ImportFile[]): { reports: FileReport[]; batches: Batch
   const reports: FileReport[] = [];
   const batches: Batch[] = [];
   for (const f of files) {
-    const text = decodeFileBytes(Buffer.from(f.bytes));
+    const { text, note } = decodeFile(Buffer.from(f.bytes));
     const format = detect(text);
     if (format === 'unknown') {
       reports.push({ name: f.name, ok: false, warnings: [], error: unknownHint(text, f.name) });
@@ -62,7 +62,7 @@ function readFiles(files: ImportFile[]): { reports: FileReport[]; batches: Batch
         label: FORMAT_LABELS[format],
         count: res.contacts.length,
         source,
-        warnings: res.warnings,
+        warnings: note ? [note, ...res.warnings] : res.warnings,
         headers,
       });
     } catch (err) {

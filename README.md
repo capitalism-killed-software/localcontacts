@@ -39,7 +39,7 @@ All people in these pictures are made up.
 | Thunderbird, Fastmail, Nextcloud, any CardDAV | `.vcf` | |
 | LinkedIn | `Connections.csv` | profile URL kept, connection date kept |
 | Telegram | `result.json` | name and phone |
-| Any CRM or spreadsheet | `.csv` with a header row | columns guessed, or named with `--map` |
+| Any CRM or spreadsheet | `.csv` with a header row (comma, semicolon or tab separated) | columns guessed, or named with `--map` |
 | Signal, WhatsApp, Messenger, Teams | none | these apps do not export contacts; export your phone's address book instead |
 
 Formats are recognised from the file contents, not the extension. A file that cannot be

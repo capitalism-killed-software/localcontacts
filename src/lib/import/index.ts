@@ -8,7 +8,7 @@ import { parseGenericCsv, type FieldMap } from './parsers/generic-csv';
 
 export type { Format, IncomingContact, ParseResult } from './types';
 export { FORMAT_LABELS } from './types';
-export { detect, decodeFileBytes, unknownHint } from './detect';
+export { detect, decodeFile, decodeFileBytes, unknownHint } from './detect';
 export { planMerge, rowToRec, recToColumns } from './merge';
 export type { Batch, ExistingRow, MergeStats, Rec } from './merge';
 export { parseFieldMap, MAPPABLE } from './parsers/generic-csv';
