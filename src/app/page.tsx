@@ -4,7 +4,7 @@ import GroupsPane from '@/components/GroupsPane';
 import NamesPane from '@/components/NamesPane';
 import NavSelect from '@/components/NavSelect';
 import SearchBar from '@/components/SearchBar';
-import { createContactAction, deleteContactAction, updateContactAction } from '@/app/actions';
+import { createContactAction, deleteContactAction, loadSampleAction, removeSampleAction, updateContactAction } from '@/app/actions';
 import {
   contactStats,
   getContact,
@@ -14,6 +14,7 @@ import {
 } from '@/lib/contacts';
 import { VIEW_SORTS, parseBook } from '@/lib/context';
 import { buildGroups, type ContextOverride } from '@/lib/groups';
+import { sampleCount } from '@/lib/sample';
 import { bookHref, contextQs } from '@/lib/urls';
 
 export const dynamic = 'force-dynamic';
@@ -52,7 +53,9 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
           : edit
             ? 'edit'
             : 'view';
-  const view = isNew || sheet || id ? 'card' : 'list';
+  // An empty book opens on the welcome, also on a phone.
+  const view = isNew || sheet || id || cardMode === 'welcome' ? 'card' : 'list';
+  const samples = sampleCount();
 
   const activeGroupKey = groups.all.active
     ? groups.all.key
@@ -92,12 +95,15 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
           sortSelect={sortSelect}
           newHref={bookHref(qs, { new: true })}
           version={listVersion()}
+          sample={samples > 0 ? { count: samples, remove: removeSampleAction.bind(null, qs) } : null}
         />
       }
       card={
         <CardPane
           mode={cardMode}
           importHref={importHref}
+          sampleCount={samples}
+          loadSample={loadSampleAction.bind(null, qs)}
           contact={selected}
           listHref={bookHref(qs)}
           viewHref={bookHref(qs, { id })}

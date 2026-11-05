@@ -16,6 +16,8 @@ type Action = (fd: FormData) => void | Promise<void>;
 export default function CardPane({
   mode,
   importHref,
+  sampleCount,
+  loadSample,
   contact,
   listHref,
   viewHref,
@@ -26,6 +28,8 @@ export default function CardPane({
 }: {
   mode: CardMode;
   importHref: string;
+  sampleCount: number;
+  loadSample: Action;
   contact: Contact | null;
   listHref: string;
   viewHref: string;
@@ -79,7 +83,7 @@ export default function CardPane({
       );
       break;
     case 'import':
-      body = <ImportPanel doneHref={listHref} />;
+      body = <ImportPanel doneHref={listHref} sampleCount={sampleCount} />;
       footer = (
         <Link href={listHref} scroll={false} prefetch={false} className="btn">
           Close
@@ -91,9 +95,17 @@ export default function CardPane({
         <div className="card card-blank welcome">
           <Silhouette />
           <h2 className="welcome-title">Your address book is empty</h2>
-          <Link href={importHref} scroll={false} prefetch={false} className="quiet-link">
-            Bring in my contacts…
-          </Link>
+          <p className="card-blank-text">Everything stays on this computer.</p>
+          <div className="welcome-actions">
+            <Link href={importHref} scroll={false} prefetch={false} className="btn btn-done">
+              Bring in my contacts…
+            </Link>
+            <form action={loadSample}>
+              <button type="submit" className="btn">
+                Look around with sample people
+              </button>
+            </form>
+          </div>
           <Link href="/help/export" prefetch={false} className="quiet-link">
             Where do I get my contacts?
           </Link>
@@ -125,9 +137,11 @@ export default function CardPane({
 
   return (
     <section className="card-pane" aria-label="Card">
-      <Link href={listHref} scroll={false} prefetch={false} className="back-link">
-        ‹ All Contacts
-      </Link>
+      {mode !== 'welcome' && (
+        <Link href={listHref} scroll={false} prefetch={false} className="back-link">
+          ‹ All Contacts
+        </Link>
+      )}
       <div className="card-scroll">{body}</div>
       <footer className="card-footer">{footer}</footer>
     </section>

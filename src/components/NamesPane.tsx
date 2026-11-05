@@ -11,12 +11,14 @@ export default function NamesPane({
   sortSelect,
   newHref,
   version,
+  sample,
 }: {
   search: ReactNode;
   groupsSelect: ReactNode;
   sortSelect: ReactNode;
   newHref: string;
   version: string;
+  sample: { count: number; remove: (fd: FormData) => void | Promise<void> } | null;
 }) {
   return (
     <section className="names-pane" aria-label="Names">
@@ -24,6 +26,16 @@ export default function NamesPane({
         {groupsSelect}
         {search}
       </div>
+      {sample && (
+        <form className="sample-banner" action={sample.remove}>
+          <span>
+            {sample.count === 1 ? '1 person here is made up.' : `${sample.count.toLocaleString()} people here are made up.`}
+          </span>
+          <button type="submit" className="btn">
+            Remove them
+          </button>
+        </form>
+      )}
       <NamesList
         version={version}
         footerStart={

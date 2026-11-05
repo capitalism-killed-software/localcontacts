@@ -789,6 +789,33 @@ body {
   .card-blank-text {
     margin: 0;
   }
+  .welcome-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 6px 0;
+  }
+  .welcome-actions form {
+    margin: 0;
+  }
+  .sample-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 8px 0 0;
+    padding: 4px 4px 4px 8px;
+    border: 1px solid #e3d48c;
+    border-radius: 4px;
+    background: #fff9dc;
+    color: #5c4c00;
+    font-size: 11px;
+  }
+  .import-sample {
+    display: block;
+    margin: 0 0 10px;
+  }
   .welcome-title {
     margin: 0 0 4px;
     font-size: 15px;

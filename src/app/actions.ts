@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createContact, updateContact, deleteContact, setPhoto, type ContactInput } from '@/lib/contacts';
 import { photoFromBytes } from '@/lib/photo';
 import { cleanIndustry, dedupeEmails, dedupePhones, defaultCountry } from '@/lib/import/normalize';
+import { loadSamplePeople, removeSamplePeople } from '@/lib/sample';
 import { bookHref, contextQs } from '@/lib/urls';
 
 // Emails, phones and links come in as repeated fields in DOM order; the
@@ -84,6 +85,20 @@ export async function updateContactAction(id: number, qs: string, fd: FormData) 
 
 export async function deleteContactAction(id: number, qs: string) {
   deleteContact(id);
+  revalidatePath('/');
+  redirect(bookHref(safeQs(qs)));
+}
+
+// The first-run welcome's "Look around with sample people", and the banner's
+// "Remove them". Both go back to the list.
+export async function loadSampleAction(qs: string) {
+  loadSamplePeople();
+  revalidatePath('/');
+  redirect(bookHref(safeQs(qs)));
+}
+
+export async function removeSampleAction(qs: string) {
+  removeSamplePeople();
   revalidatePath('/');
   redirect(bookHref(safeQs(qs)));
 }

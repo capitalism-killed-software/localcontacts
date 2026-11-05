@@ -34,6 +34,17 @@ function upload(files: string[], extra: Record<string, string> = {}, headers: Re
 }
 
 describe('POST /api/import', () => {
+  it('removes the sample people in the same write when asked', async () => {
+    const { loadSamplePeople, sampleCount } = await import('../../src/lib/sample');
+    loadSamplePeople();
+    const dry = (await (await upload(['apple-contacts.vcf'], { removeSample: '1' })).json()) as ImportReport;
+    expect(dry.after).toBe(2);
+    expect(sampleCount()).toBe(15);
+    await upload(['apple-contacts.vcf'], { apply: '1', removeSample: '1' });
+    expect(sampleCount()).toBe(0);
+    expect(countContacts()).toBe(2);
+  });
+
   it('dry-runs by default and writes nothing', async () => {
     const res = await upload(['google-contacts.vcf', 'linkedin-Connections.csv']);
     expect(res.status).toBe(200);

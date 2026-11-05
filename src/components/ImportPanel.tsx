@@ -17,7 +17,7 @@ const contacts = (n: number) => `${n.toLocaleString()} contact${n === 1 ? '' : '
 
 const kb = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
 
-export default function ImportPanel({ doneHref }: { doneHref: string }) {
+export default function ImportPanel({ doneHref, sampleCount = 0 }: { doneHref: string; sampleCount?: number }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -29,8 +29,11 @@ export default function ImportPanel({ doneHref }: { doneHref: string }) {
   // Column choices for generic CSVs, by file; and which files show them.
   const [maps, setMaps] = useState<Record<string, FieldMap>>({});
   const [mapOpen, setMapOpen] = useState<Record<string, boolean>>({});
+  // With sample people in the book, importing real files clears them out unless told not to.
+  const [removeSample, setRemoveSample] = useState(true);
+  const clearSample = sampleCount > 0 && removeSample;
 
-  async function send(list: File[], apply: boolean, mapsNow: Record<string, FieldMap> = maps) {
+  async function send(list: File[], apply: boolean, mapsNow: Record<string, FieldMap> = maps, clear = clearSample) {
     setError(null);
     setPhase(apply ? 'importing' : 'checking');
     const form = new FormData();
@@ -41,6 +44,7 @@ export default function ImportPanel({ doneHref }: { doneHref: string }) {
     });
     if (source.trim()) form.append('source', source.trim());
     if (apply) form.append('apply', '1');
+    if (clear) form.append('removeSample', '1');
     try {
       const res = await fetch('/api/import', { method: 'POST', body: form });
       const body = await res.json();
@@ -111,6 +115,21 @@ export default function ImportPanel({ doneHref }: { doneHref: string }) {
         </a>
       </p>
       <hr className="card-divider" />
+
+      {phase !== 'done' && sampleCount > 0 && (
+        <label className="import-sample">
+          <input
+            type="checkbox"
+            checked={removeSample}
+            disabled={busy}
+            onChange={(e) => {
+              setRemoveSample(e.target.checked);
+              if (files.length) void send(files, false, maps, sampleCount > 0 && e.target.checked);
+            }}
+          />{' '}
+          Remove the {sampleCount === 1 ? 'sample person' : `${sampleCount.toLocaleString()} sample people`} first
+        </label>
+      )}
 
       {phase !== 'done' && (
         <label
