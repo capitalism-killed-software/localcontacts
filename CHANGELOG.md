@@ -45,3 +45,11 @@ The first public release.
 - `npm run merge:dupes` merges the way an import does, so the dropped card's further emails,
   phones, links, photo and groups are kept; disagreeing values go into the note. It saves a
   backup first and refuses chained or repeated pairs, which used to delete a contact outright.
+- Every write is checked before it runs, in one place: a foreign `Origin` (including one backed
+  by a forged `X-Forwarded-Host`) or a cross-site request without one is refused with 403. No
+  other site may frame the book (`X-Frame-Options`, `frame-ancestors`), which a disguised page
+  could otherwise use to click its buttons.
+- Host headers that aren't a plain host and port (`localhost:abc`, `localhost@evil.example`) are
+  refused. Card ids in links are plain decimal numbers only, so `?id=1e3` no longer opens card
+  1000. An import over 100 MB is refused before it is read, and the import page's messages name
+  the real problem (a tag over 40 characters, an empty file).

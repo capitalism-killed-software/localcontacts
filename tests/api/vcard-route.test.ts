@@ -31,4 +31,13 @@ describe('GET /api/vcard/[id]', () => {
     expect((await call('abc')).status).toBe(404);
     expect((await call('-1')).status).toBe(404);
   });
+
+  it('reads only plain decimal ids, so a mistyped link never opens another card', async () => {
+    const c = createContact({ full_name: 'Ada Lovelace' });
+    expect(c.id).toBe(1);
+    expect((await call('1')).status).toBe(200);
+    for (const odd of ['1e0', '1.0', '0x1', '0b1', '+1', ' 1', '1 ', '01', '00001', '9007199254740993']) {
+      expect((await call(odd)).status, odd).toBe(404);
+    }
+  });
 });

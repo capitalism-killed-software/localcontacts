@@ -10,10 +10,14 @@ home server you control. Its safety comes from not being reachable by anyone els
   127.0.0.1 too. Reaching it from another device is something you turn on, as described in
   [docs/DEPLOY.md](docs/DEPLOY.md).
 - **It answers only known host names.** Requests addressed to anything other than `localhost`,
-  `127.0.0.1`, `::1` or the names in `CONTACTS_ALLOWED_HOSTS` are refused, which stops
-  DNS-rebinding attacks from websites you visit.
-- **Writes come only from its own pages.** Saving, deleting and importing check that the request
-  came from the app itself, so another site open in your browser cannot change your data.
+  `127.0.0.1`, `::1`, a name ending in `.localhost` (browsers send those to this machine) or the
+  names in `CONTACTS_ALLOWED_HOSTS` are refused, which stops DNS-rebinding attacks from websites
+  you visit. Only the app's own scripts and styles, which hold no contacts, are served to any
+  name.
+- **Writes come only from its own pages.** Every save, delete and import is checked before it
+  runs: the browser's `Origin` must be the app itself, so another site open in your browser
+  cannot change your data. No other site may show the app in a frame, so its buttons can't be
+  clicked through a disguised page.
 - **No network calls.** It never fetches anything: not updates, not analytics, not photos
   linked from a vCard.
 - **Untrusted files are treated as data.** Imported text is escaped when shown, links become

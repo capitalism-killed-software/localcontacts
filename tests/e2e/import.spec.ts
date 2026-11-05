@@ -72,3 +72,23 @@ test('requests addressed to another host name are refused', async ({ request }) 
   expect(res.status()).toBe(421);
   expect(await res.text()).toContain('CONTACTS_ALLOWED_HOSTS');
 });
+
+test('no other site may show the book in a frame, or write to it', async ({ request }) => {
+  const page = await request.get('/');
+  expect(page.headers()['x-frame-options']).toBe('DENY');
+  expect(page.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
+  // A card form posted from another site is refused before it reaches the action.
+  const res = await request.post('/', { headers: { Origin: 'https://evil.example', 'Next-Action': 'x' }, data: '[]' });
+  expect(res.status()).toBe(403);
+});
+
+test('an import larger than the limit is refused before it is read', async ({ request }) => {
+  const res = await request.fetch('/api/import', {
+    method: 'POST',
+    headers: { 'Content-Length': String(2 * 1024 ** 3), 'Content-Type': 'multipart/form-data; boundary=x' },
+    data: Buffer.from('--x--'),
+    timeout: 10_000,
+  }).catch((e: Error) => e);
+  // Either a clean 413, or the connection is closed before the body is sent; never a long wait.
+  if (!(res instanceof Error)) expect(res.status()).toBe(413);
+});

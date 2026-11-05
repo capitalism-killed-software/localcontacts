@@ -59,6 +59,8 @@ test('photos: a fake image is refused, a real one saved, then removed', async ({
   await expect(page.locator('.card .photo img')).toBeVisible();
   const res = await page.request.get(`/api/photo/${id}`);
   expect(res.headers()['content-type']).toBe('image/png');
+  expect(res.headers()['x-content-type-options']).toBe('nosniff');
+  expect(res.headers()['content-security-policy']).toContain("default-src 'none'");
 
   await page.goto(`/?id=${id}&edit=1`);
   await page.locator('.photo-remove').click();

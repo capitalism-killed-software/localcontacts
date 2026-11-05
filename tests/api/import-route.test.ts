@@ -93,3 +93,22 @@ describe('POST /api/import', () => {
     expect((await upload(['google-contacts.vcf'], { source: 'bad tag!' })).status).toBe(400);
   });
 });
+
+describe('POST /api/import refusals', () => {
+  it('refuses another site even when it claims a forwarded host', async () => {
+    const res = await upload(['google-contacts.vcf'], { apply: '1' }, { origin: 'http://evil.example', 'x-forwarded-host': 'evil.example' });
+    expect(res.status).toBe(403);
+    expect(countContacts()).toBe(0);
+  });
+
+  it('names the real problem with a tag or an empty file', async () => {
+    const long = await upload(['google-contacts.vcf'], { source: 'a'.repeat(41) });
+    expect(long.status).toBe(400);
+    expect((await long.json()).error).toBe('A source tag can be at most 40 characters long.');
+    const form = new FormData();
+    form.append('file', new File([], 'empty.vcf'));
+    const res = await POST(new Request('http://localhost:3000/api/import', { method: 'POST', body: form, headers: { host: 'localhost:3000', origin: 'http://localhost:3000' } }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe('empty.vcf is empty.');
+  });
+});

@@ -1,3 +1,4 @@
+import { parseId } from './ids';
 import type { ContactFilter, SortDir, SortKey } from './contacts';
 
 // One parser for the book's URL parameters, shared by the page, the names
@@ -53,10 +54,9 @@ export function parseBook(raw: RawParams, opts: { knownTags?: Set<string> } = {}
     rawSource === 'untagged' ||
     (opts.knownTags ? opts.knownTags.has(rawSource) : /^[A-Za-z0-9_.-]+$/.test(rawSource));
   const rawSort = get('sort');
-  const idNum = Number(get('id'));
+  const id = parseId(get('id'));
   const isNew = get('new') === '1';
   const isImport = !isNew && get('import') === '1';
-  const id = Number.isFinite(idNum) && idNum > 0 ? idNum : null;
   return {
     q: get('q'),
     filter: FILTER_KEYS.has(rawFilter) ? rawFilter : 'all',

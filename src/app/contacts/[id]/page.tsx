@@ -1,3 +1,4 @@
+import { parseId } from '@/lib/ids';
 import { notFound, redirect } from 'next/navigation';
 import { bookHref } from '@/lib/urls';
 
@@ -10,7 +11,7 @@ export default async function ContactRedirect(props: {
 }) {
   const params = await props.params;
   const searchParams = await props.searchParams;
-  const id = Number(params.id);
-  if (!Number.isFinite(id) || id <= 0) notFound();
+  const id = parseId(params.id);
+  if (!id) notFound();
   redirect(bookHref('', { id, edit: searchParams.edit === '1' }));
 }
