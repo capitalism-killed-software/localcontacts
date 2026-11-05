@@ -816,6 +816,94 @@ body {
     color: #5c4c00;
     font-size: 11px;
   }
+  .tidy-tabs {
+    display: flex;
+    gap: 4px;
+    margin: 12px 0 0;
+  }
+  .tidy-tab {
+    padding: 3px 10px;
+    border: 1px solid #c8c8c8;
+    border-radius: 11px;
+    color: var(--btn-text);
+    font-size: 11px;
+    text-decoration: none;
+  }
+  .tidy-tab.is-active {
+    border-color: var(--sel-mid);
+    background: var(--sel-mid);
+    color: #fff;
+  }
+  .tidy-message {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .tidy-message form {
+    margin: 0;
+  }
+  .tidy-list {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+  }
+  .tidy-row {
+    padding: 5px 0;
+    border-bottom: 1px dotted #d0d0d0;
+    overflow-wrap: anywhere;
+  }
+  .tidy-from {
+    color: var(--company);
+  }
+  .tidy-pages {
+    margin-top: 10px;
+  }
+  .dupe-pair {
+    margin: 12px 0 0;
+    padding: 6px 10px 10px;
+    border: 1px solid #d8d8d8;
+    border-radius: 6px;
+  }
+  .dupe-why {
+    padding: 0 4px;
+    color: var(--section-text);
+    font-weight: bold;
+    font-size: 11px;
+  }
+  .dupe-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .dupe-table th {
+    width: 64px;
+    padding: 2px 8px 2px 0;
+    color: var(--label);
+    font-weight: normal;
+    text-align: right;
+    vertical-align: top;
+  }
+  .dupe-table td {
+    padding: 2px 6px;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+  .dupe-table tr.is-different td {
+    background: #fff8e0;
+  }
+  .dupe-side-name {
+    font-weight: bold;
+  }
+  .dupe-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin-top: 8px;
+  }
+  .export-note {
+    margin: 16px 0 0;
+  }
   .export-scope {
     margin: 0 0 4px;
   }

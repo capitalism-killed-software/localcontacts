@@ -95,3 +95,52 @@ test('a backup can be deleted, after asking', async ({ page }) => {
   await expect(rows).toHaveCount(4);
   await expect(page.locator('.backup-message')).toContainText('Deleted');
 });
+
+test('clean-up: a possible duplicate can be kept apart, undone, then merged', async ({ page }) => {
+  await page.goto('/');
+  await page.getByLabel('More').selectOption({ label: 'Clean up…' });
+  await expect(page).toHaveURL(/sheet=tidy/);
+  const sheet = page.locator('.tidy-panel');
+  const pair = sheet.locator('.dupe-pair');
+  await expect(pair).toHaveCount(1);
+  await expect(pair).toContainText('Same name');
+  await expect(pair.locator('.dupe-side-name')).toHaveText(['Sam Rivera', 'Sam Rivera']);
+
+  await pair.getByLabel('Not the same person').check();
+  await sheet.getByRole('button', { name: /^Apply/ }).click();
+  await expect(sheet.locator('.tidy-message')).toContainText('Kept 1 pair apart');
+  await expect(pair).toHaveCount(0);
+  await expect(sheet).toContainText('No possible duplicates');
+
+  await sheet.getByRole('button', { name: 'Undo' }).click();
+  await expect(sheet.locator('.tidy-message')).toContainText('Undone');
+  await expect(pair).toHaveCount(1);
+
+  await pair.getByLabel('Keep left').check();
+  await sheet.getByRole('button', { name: /^Apply/ }).click();
+  await expect(sheet.locator('.tidy-message')).toContainText('Merged 1 pair');
+  await expect(count(page)).toHaveText(/^16 cards/);
+});
+
+test('clean-up: names and industries are previewed, then applied for the ones left ticked', async ({ page }) => {
+  await page.goto('/?sheet=tidy&tab=names');
+  const sheet = page.locator('.tidy-panel');
+  const fix = sheet.locator('.tidy-row', { hasText: 'jo.baker@example.com' });
+  await expect(fix).toContainText('Jo Baker');
+  await expect(fix.getByRole('checkbox')).toBeChecked();
+  await sheet.getByRole('button', { name: /^Apply/ }).click();
+  await expect(sheet.locator('.tidy-message')).toContainText('Tidied 1 name');
+  await expect(sheet).toContainText('No names to tidy');
+
+  await sheet.getByRole('link', { name: /^Industries/ }).click();
+  const rows = sheet.locator('.tidy-row');
+  await expect(rows.first()).toBeVisible();
+  const total = await rows.count();
+  const dental = rows.filter({ hasText: 'Riverside Dental Clinic' });
+  await expect(dental).toContainText('Healthcare / Biotech');
+  await dental.getByRole('checkbox').uncheck();
+  await sheet.getByRole('button', { name: /^Apply/ }).click();
+  await expect(sheet.locator('.tidy-message')).toContainText(`Filled in ${total - 1} industr`);
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText('Riverside Dental Clinic');
+});

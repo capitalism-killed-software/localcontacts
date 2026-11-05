@@ -7,6 +7,8 @@ import DeleteButton from './DeleteButton';
 import BackupsPanel, { type BackupRow, type UndoImport } from './BackupsPanel';
 import ExportPanel from './ExportPanel';
 import ImportPanel from './ImportPanel';
+import TidyPanel from './TidyPanel';
+import type { TidyData } from '@/lib/cleanup/sheet';
 import Silhouette from './Silhouette';
 
 export type CardMode = 'empty' | 'welcome' | 'missing' | 'view' | 'edit' | 'new' | Sheet;
@@ -23,6 +25,8 @@ export default function CardPane({
   loadSample,
   backups,
   exporting,
+  tidy,
+  tidyHref,
   contact,
   listHref,
   viewHref,
@@ -38,6 +42,8 @@ export default function CardPane({
   loadSample: Action;
   backups: { rows: BackupRow[]; undo: UndoImport | null; total: string; folder: string | null } | null;
   exporting: { scope: string; count: number; total: number; qs: string; allHref: string | null } | null;
+  tidy: { data: TidyData; hrefFor: Record<string, string> } | null;
+  tidyHref: string;
   contact: Contact | null;
   listHref: string;
   viewHref: string;
@@ -91,7 +97,15 @@ export default function CardPane({
       );
       break;
     case 'import':
-      body = <ImportPanel doneHref={listHref} backupsHref={backupsHref} sampleCount={sampleCount} />;
+      body = <ImportPanel doneHref={listHref} backupsHref={backupsHref} tidyHref={tidyHref} sampleCount={sampleCount} />;
+      footer = (
+        <Link href={listHref} scroll={false} prefetch={false} className="btn">
+          Close
+        </Link>
+      );
+      break;
+    case 'tidy':
+      body = tidy && <TidyPanel {...tidy} />;
       footer = (
         <Link href={listHref} scroll={false} prefetch={false} className="btn">
           Close

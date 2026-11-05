@@ -54,7 +54,7 @@ export default function ExportPanel({
               of running it as a formula.
             </span>
           </div>
-          <p className="drop-sub">Either file can be imported here again without losing anything.</p>
+          <p className="drop-sub export-note">Either file can be imported here again without losing anything.</p>
         </>
       )}
     </div>

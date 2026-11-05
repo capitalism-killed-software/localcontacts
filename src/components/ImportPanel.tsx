@@ -21,10 +21,12 @@ const contacts = (n: number) => `${n.toLocaleString()} contact${n === 1 ? '' : '
 export default function ImportPanel({
   doneHref,
   backupsHref,
+  tidyHref,
   sampleCount = 0,
 }: {
   doneHref: string;
   backupsHref: string;
+  tidyHref: string;
   sampleCount?: number;
 }) {
   const router = useRouter();
@@ -298,6 +300,7 @@ export default function ImportPanel({
           backup={report.backup ?? null}
           doneHref={doneHref}
           backupsHref={backupsHref}
+          tidyHref={tidyHref}
           onMore={() => {
             setFiles([]);
             setMaps({});
@@ -318,12 +321,14 @@ function ImportDone({
   backup,
   doneHref,
   backupsHref,
+  tidyHref,
   onMore,
 }: {
   written: { inserted: number; updated: number };
   backup: string | null;
   doneHref: string;
   backupsHref: string;
+  tidyHref: string;
   onMore: () => void;
 }) {
   const [undone, undo, undoing] = useActionState<BackupResult, FormData>(backupAction, null);
@@ -370,6 +375,13 @@ function ImportDone({
           Import more
         </button>
       </div>
+      {!undone?.ok && (
+        <p className="drop-sub">
+          <Link href={tidyHref} scroll={false} prefetch={false}>
+            Look for duplicates and tidy names →
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

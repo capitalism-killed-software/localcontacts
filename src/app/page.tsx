@@ -18,6 +18,7 @@ import { sampleCount } from '@/lib/sample';
 import { backupsDir, describeBackup, formatWhen, lastImport, listBackups } from '@/lib/backups';
 import { fileSize } from '@/lib/format';
 import { bookRows } from '@/lib/export/book';
+import { TIDY_TABS, tidyData, type TidyData } from '@/lib/cleanup/sheet';
 import type { BackupRow, UndoImport } from '@/components/BackupsPanel';
 import { bookHref, contextQs } from '@/lib/urls';
 
@@ -41,6 +42,7 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
   const importHref = bookHref(qs, { sheet: 'import' });
   const backupsHref = bookHref(qs, { sheet: 'backups' });
   const exportHref = bookHref(qs, { sheet: 'export' });
+  const tidyHref = bookHref(qs, { sheet: 'tidy' });
   const hrefWith = (over: ContextOverride & { sort?: string }) =>
     bookHref(contextQs({ ...context, ...over }), { id: selId });
 
@@ -76,6 +78,20 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
     };
   }
 
+  // The clean-up sheet: one tab and page at a time (?tab=names&page=2).
+  let tidy: { data: TidyData; hrefFor: Record<string, string> } | null = null;
+  if (sheet === 'tidy') {
+    const one = (k: string) => {
+      const v = searchParams[k];
+      return Array.isArray(v) ? v[0] : v;
+    };
+    const data = tidyData(one('tab'), one('page'));
+    const hrefFor: Record<string, string> = {};
+    for (const t of TIDY_TABS) hrefFor[`tab:${t}`] = `${tidyHref}&tab=${t}`;
+    for (const n of [data.page - 1, data.page + 1]) hrefFor[`page:${n}`] = `${tidyHref}&tab=${data.tab}&page=${n}`;
+    tidy = { data, hrefFor };
+  }
+
   // The backups sheet's list, read only when it is open.
   let backups: { rows: BackupRow[]; undo: UndoImport | null; total: string; folder: string | null } | null = null;
   if (sheet === 'backups') {
@@ -99,6 +115,7 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
     : groups.sections.flatMap((s) => s.items).find((i) => i.active)?.key ?? groups.all.key;
   // The other sheets, from the "More" menu under the groups (and, on a phone, the groups menu).
   const sheetLinks = [
+    { value: 'tidy', label: 'Clean up…', href: tidyHref },
     { value: 'export', label: 'Export…', href: exportHref },
     { value: 'backups', label: 'Backups…', href: backupsHref },
   ];
@@ -151,6 +168,8 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
           loadSample={loadSampleAction.bind(null, qs)}
           backups={backups}
           exporting={exporting}
+          tidy={tidy}
+          tidyHref={tidyHref}
           contact={selected}
           listHref={bookHref(qs)}
           viewHref={bookHref(qs, { id })}

@@ -5,6 +5,10 @@ import { createContact, updateContact, deleteContact, setPhoto, type ContactInpu
 import { photoFromBytes } from '@/lib/photo';
 import { cleanIndustry, dedupeEmails, dedupePhones, defaultCountry } from '@/lib/import/normalize';
 import { deleteBackup, describeBackup, formatWhen, listBackups, restoreBackup } from '@/lib/backups';
+import { applyDuplicates, bookDuplicates, pairKey } from '@/lib/cleanup/dupes';
+import { applyNameFixes } from '@/lib/cleanup/names';
+import { applyIndustries } from '@/lib/industry';
+import type { Pair } from '@/lib/import/dupes';
 import { loadSamplePeople, removeSamplePeople } from '@/lib/sample';
 import { bookHref, contextQs } from '@/lib/urls';
 
@@ -119,7 +123,7 @@ export async function backupAction(_prev: BackupResult, fd: FormData): Promise<B
       revalidatePath('/');
       const n = `${cards.toLocaleString()} card${cards === 1 ? '' : 's'}`;
       if (op === 'undo') {
-        const what = entry?.record?.detail ? `importing ${entry.record.detail}` : 'the import';
+        const what = entry ? describeBackup(entry).replace(/^Before /, '') : 'that change';
         return { ok: true, message: `Undone. The book is back as it was before ${what} (${n}).` };
       }
       return {
@@ -136,5 +140,55 @@ export async function backupAction(_prev: BackupResult, fd: FormData): Promise<B
   } catch (err) {
     const label = entry ? describeBackup(entry).toLowerCase() : 'that backup';
     return { ok: false, message: `Nothing was changed: ${(err as Error).message} (${label})` };
+  }
+}
+
+// Clean-up's Apply. The form sends ids and choices only; what to change is
+// worked out again here, so a page left open while the book changed can't
+// write a stale suggestion. Each Apply takes one backup, which Undo restores.
+export type TidyResult = { ok: boolean; message: string; backup: string | null } | null;
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+const fileName = (path: string | null) => path?.split(/[\\/]/).pop() ?? null;
+
+export async function tidyAction(_prev: TidyResult, fd: FormData): Promise<TidyResult> {
+  const op = fd.get('op');
+  const ids = fd
+    .getAll('id')
+    .map((v) => Number(v))
+    .filter((n) => Number.isInteger(n) && n > 0);
+  try {
+    if (op === 'names') {
+      const { changed, backup } = applyNameFixes(ids);
+      revalidatePath('/');
+      return { ok: true, message: changed ? `Tidied ${plural(changed, 'name')}.` : 'Nothing changed.', backup: fileName(backup) };
+    }
+    if (op === 'industries') {
+      const { changed, backup } = applyIndustries(ids);
+      revalidatePath('/');
+      return { ok: true, message: changed ? `Filled in ${plural(changed, 'industry', 'industries')}.` : 'Nothing changed.', backup: fileName(backup) };
+    }
+    if (op === 'dupes') {
+      const current = new Set(bookDuplicates().pairs.map((p) => pairKey(p.a, p.b)));
+      const merges: Pair[] = [];
+      const dismiss: Pair[] = [];
+      for (const [key, value] of fd.entries()) {
+        const m = key.match(/^pair:(\d+):(\d+)$/);
+        if (!m) continue;
+        const a = Number(m[1]);
+        const b = Number(m[2]);
+        if (!current.has(pairKey(a, b))) continue;
+        if (value === 'a') merges.push([a, b]);
+        else if (value === 'b') merges.push([b, a]);
+        else if (value === 'apart') dismiss.push([a, b]);
+      }
+      const r = applyDuplicates({ merges, dismiss });
+      revalidatePath('/');
+      const parts = [r.merged ? `Merged ${plural(r.merged, 'pair')}` : '', r.dismissed ? `Kept ${plural(r.dismissed, 'pair')} apart` : ''].filter(Boolean);
+      return { ok: true, message: parts.length ? `${parts.join('; ')}.` : 'Nothing changed: choose what to do with a pair first.', backup: fileName(r.backup) };
+    }
+    return { ok: false, message: 'Nothing to do.', backup: null };
+  } catch (err) {
+    return { ok: false, message: `Nothing was changed: ${(err as Error).message}`, backup: null };
   }
 }
