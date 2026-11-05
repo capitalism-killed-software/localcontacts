@@ -9,7 +9,7 @@ if not exist .next\BUILD_ID call npm run build
 if "%PORT%"=="" set PORT=3000
 set NEXT_TELEMETRY_DISABLED=1
 set URL=http://localhost:%PORT%
-start "localcontacts server" /min node node_modules\next\dist\bin\next start -p %PORT%
+start "localcontacts server" /min node node_modules\next\dist\bin\next start -H 127.0.0.1 -p %PORT%
 timeout /t 4 /nobreak >nul
 set PROFILE=%LocalAppData%\localcontacts\browser-profile
 for %%B in ("%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" "%ProgramFiles%\Google\Chrome\Application\chrome.exe" "%LocalAppData%\Google\Chrome\Application\chrome.exe" "%ProgramFiles%\BraveSoftware\Brave-Browser\Application\brave.exe") do (

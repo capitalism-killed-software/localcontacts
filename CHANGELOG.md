@@ -34,3 +34,8 @@ The first public release.
   for a window of its own on macOS, Linux and Windows.
 - Answers only known host names and accepts writes only from its own pages; no network calls,
   no telemetry, no AI.
+
+**Fixed after black-box testing**
+- `npm start`, `npm run app` and the launchers listen on this computer only (127.0.0.1), so
+  nobody else on the network can open the book. `CONTACTS_LISTEN` picks another address on
+  purpose; the `HOSTNAME` setting DEPLOY.md described never worked.

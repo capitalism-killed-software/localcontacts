@@ -4,7 +4,7 @@ FROM node:24-alpine
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
-    HOSTNAME=0.0.0.0 \
+    CONTACTS_LISTEN=0.0.0.0 \
     PORT=3000
 
 WORKDIR /app

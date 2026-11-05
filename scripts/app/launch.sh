@@ -23,7 +23,7 @@ up() { curl -fsS -o /dev/null "$URL" 2>/dev/null; }
 
 server=""
 if ! up; then
-  NEXT_TELEMETRY_DISABLED=1 node node_modules/next/dist/bin/next start -p "$PORT" >"$LOG" 2>&1 &
+  NEXT_TELEMETRY_DISABLED=1 node node_modules/next/dist/bin/next start -H 127.0.0.1 -p "$PORT" >"$LOG" 2>&1 &
   server=$!
   for _ in $(seq 1 120); do up && break; sleep 0.5; done
   up || { echo "The server did not start; see $LOG" >&2; kill "$server" 2>/dev/null || true; exit 1; }

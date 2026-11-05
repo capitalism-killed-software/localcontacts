@@ -19,7 +19,8 @@ npm run build
 npm start          # http://localhost:3000
 ```
 
-`npm run dev` works too and reloads on code changes, but `npm start` is faster. Stop it
+`npm start` listens on this computer only (127.0.0.1), so other devices on your network
+cannot open it; section 3 explains how to reach it from them on purpose. `npm run dev` works too and reloads on code changes, but `npm start` is faster. Stop it
 with Ctrl-C. The database and `imports/` folder live inside the project directory.
 
 To stop Next.js sending its anonymous usage telemetry, once:
@@ -78,8 +79,8 @@ The SSH tunnel below needs nothing, because you still open `localhost`.
 make the app listen on the server's Tailscale address instead of localhost. With Docker,
 change the port line in `docker-compose.yml` to `"100.x.y.z:3000:3000"` (your Tailscale
 IP), add `CONTACTS_ALLOWED_HOSTS=100.x.y.z` and restart. Without Docker:
-`HOSTNAME=100.x.y.z CONTACTS_ALLOWED_HOSTS=100.x.y.z npm start`. Only devices in your tailnet
-can connect.
+`CONTACTS_LISTEN=100.x.y.z CONTACTS_ALLOWED_HOSTS=100.x.y.z npm start`. It then listens on
+the Tailscale address only, so only devices in your tailnet can connect.
 
 **SSH tunnel.** From the computer you are sitting at:
 
@@ -177,7 +178,7 @@ All optional, all environment variables:
 | Variable | Default | Purpose |
 |---|---|---|
 | `PORT` | `3000` | port to listen on |
-| `HOSTNAME` | `localhost` | address to bind to |
+| `CONTACTS_LISTEN` | `127.0.0.1` (`0.0.0.0` inside the Docker image) | address `npm start` listens on; `npm run app` and the launchers always use `127.0.0.1` |
 | `CONTACTS_DB_PATH` | `data/contacts.db` | where the database lives |
 | `CONTACTS_DEFAULT_COUNTRY` | `US` | country assumed for phone numbers without a `+` prefix |
 | `CONTACTS_ALLOWED_HOSTS` | unset | extra host names or addresses the app answers, comma-separated (see section 3); `*` turns the check off |

@@ -5,6 +5,10 @@ home server you control. Its safety comes from not being reachable by anyone els
 
 ## How it protects your contacts
 
+- **It listens on your computer only.** `npm start`, `npm run app` and the launchers accept
+  connections from this machine alone (127.0.0.1); the Docker setup publishes the port on
+  127.0.0.1 too. Reaching it from another device is something you turn on, as described in
+  [docs/DEPLOY.md](docs/DEPLOY.md).
 - **It answers only known host names.** Requests addressed to anything other than `localhost`,
   `127.0.0.1`, `::1` or the names in `CONTACTS_ALLOWED_HOSTS` are refused, which stops
   DNS-rebinding attacks from websites you visit.
