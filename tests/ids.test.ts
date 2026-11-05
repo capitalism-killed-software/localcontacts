@@ -16,5 +16,8 @@ describe('parseId', () => {
   it('is what the book uses for ?id=', () => {
     expect(parseBook({ id: '1e3' }).id).toBeNull();
     expect(parseBook({ id: '1000' }).id).toBe(1000);
+    // "+1" in a query string is " 1": not trimmed into an id.
+    expect(parseBook(new URLSearchParams('id=+1')).id).toBeNull();
+    expect(parseBook({ id: ' 1' }).id).toBeNull();
   });
 });

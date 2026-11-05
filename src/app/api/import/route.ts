@@ -21,7 +21,8 @@ export async function POST(req: Request) {
   try {
     form = await req.formData();
   } catch {
-    return fail(400, 'Expected a form upload.');
+    // A malformed form, or one cut off by the server's limit (uploads over 100 MB).
+    return fail(400, 'The upload could not be read as a form. Uploads over 100 MB are cut off.');
   }
   const uploads = form.getAll('file').filter((f): f is File => f instanceof File);
   if (uploads.length === 0) return fail(400, 'Choose at least one file.');

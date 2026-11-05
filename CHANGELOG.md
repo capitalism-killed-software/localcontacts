@@ -51,7 +51,7 @@ The first public release.
   could otherwise use to click its buttons.
 - Host headers that aren't a plain host and port (`localhost:abc`, `localhost@evil.example`) are
   refused. Card ids in links are plain decimal numbers only, so `?id=1e3` no longer opens card
-  1000. An import over 100 MB is refused before it is read, and the import page's messages name
+  1000. An import over 100 MB is refused from its size before it is parsed, and the import page's messages name
   the real problem (a tag over 40 characters, an empty file).
 - Exports round-trip completely: groups, industry and the last-contacted date come back from
   both vCard and CSV, a card without a name stays without one, and importing an export into the

@@ -6,7 +6,8 @@ import { MAX_IMPORT_BODY, TOO_LARGE_MESSAGE } from './lib/import/limits';
 // - Requests addressed to a host name this app doesn't know are refused (DNS rebinding).
 // - Writes are refused unless they come from the app's own pages (another site open
 //   in the browser must not change the book).
-// - An import larger than the limit is refused before its body is read.
+// - An import whose Content-Length is over the limit is refused before the route
+//   parses it (Next.js has buffered up to its own 110 MB cap by then).
 
 const WRITES = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 

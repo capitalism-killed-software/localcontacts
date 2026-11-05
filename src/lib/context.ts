@@ -47,6 +47,8 @@ function getter(raw: RawParams): (k: string) => string {
 // falls back to 'all'. Without it any well-formed tag is accepted.
 export function parseBook(raw: RawParams, opts: { knownTags?: Set<string> } = {}): BookParams {
   const get = getter(raw);
+  // The id is read as written: " 1" or "+1" is not a card id.
+  const rawId = raw instanceof URLSearchParams ? raw.get('id') : Array.isArray(raw.id) ? raw.id[0] : raw.id;
   const rawFilter = get('filter') as ContactFilter;
   // Tags are compared without case, as the list and the export filter them.
   const rawSource = (get('source') || 'all').toLowerCase();
@@ -56,7 +58,7 @@ export function parseBook(raw: RawParams, opts: { knownTags?: Set<string> } = {}
     rawSource === 'untagged' ||
     (known ? known.has(rawSource) : /^[A-Za-z0-9_.-]+$/.test(rawSource));
   const rawSort = get('sort');
-  const id = parseId(get('id'));
+  const id = parseId(rawId ?? null);
   const isNew = get('new') === '1';
   const isImport = !isNew && get('import') === '1';
   return {
