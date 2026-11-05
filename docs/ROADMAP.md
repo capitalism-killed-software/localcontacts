@@ -156,9 +156,15 @@ start: phone access to your own computer over your own network, and an update ch
 
 ### 1.1: No terminal needed
 
+Built on the `next` branch (2026-11-04), not released yet: `CHANGELOG.md` lists it under
+"Unreleased (1.1)". Before the release: the tester's checklist, a round trip of a real address
+book (export, restore and Undo leave every card identical), and a first run on a clean VM.
+
 - **A first-run welcome when the book is empty:**
   - bring in my contacts;
-  - look around with sample people, in a separate demo book with a one-click way out;
+  - look around with sample people: made-up cards in the same book, marked as made up, never
+    merged with real ones, and removed with one click (a separate demo book was considered and
+    dropped: one book is simpler to explain);
   - where do I get my contacts?
 - **A guided import checklist:**
   - pick the services you use;

@@ -58,12 +58,21 @@ npm install
 npm run dev        # http://localhost:3000
 ```
 
-The database is created at `data/contacts.db` on first start. To look around with fake
-data before importing your own:
+The database is created at `data/contacts.db` on first start. The empty book offers three
+ways in, none of which needs the terminal again:
 
-```bash
-npm run import -- --apply seed/sample-contacts.csv
-```
+- **Bring in my contacts…**: a guide that asks which services you use (Google, Apple,
+  Outlook, Proton, LinkedIn, Telegram, Android, …), shows each one's export steps with a link,
+  and gives each a box to drop its file in. Each box ticks itself once its contacts are in.
+- **Look around with sample people**: 15 made-up people to try everything on. A note above
+  the list says they are made up, with a button that removes them; importing your own files
+  offers to remove them first.
+- **Where do I get my contacts?**: the [export guide](docs/exporting-your-contacts.md).
+
+Everything else is under **More** below the groups: **Clean up…**, **Export…**, **Backups…**
+and **About** (with a **Check for updates** button, the only time the app asks the internet
+anything). To load fake data from the command line instead:
+`npm run import -- --apply seed/sample-contacts.csv`.
 
 ## Import your own contacts
 
@@ -78,7 +87,8 @@ npm run import -- --apply seed/sample-contacts.csv
    - **Android:** Contacts app → Fix & manage → Export to file
    - **Signal and WhatsApp** do not export contacts; they read your phone's address book, so export that (Apple or Android).
 2. In the app, press **Import…** under the groups (on a phone: the groups menu), drop the
-   files in, check the summary and press **Import**. Or use the command line, below.
+   files in, check the summary and press **Import**. **More → Guided import…** does the same
+   one service at a time, with each one's steps. Or use the command line, below.
 
 From the command line, put the files in `imports/` (gitignored) or anywhere outside the repo.
 The importer is a dry run until you add `--apply`:
@@ -161,9 +171,21 @@ There is no Android or iOS app and no APK: the app is a Node server with a SQLit
 a phone cannot run. The installed web app on a phone talks to the server on your computer or
 home server.
 
-## Cleanup scripts
+## Clean up
 
-All three are dry-run by default; add `--apply` to write, which saves a backup of the database to
+**More → Clean up…** in the book has three tabs, each a preview until you press **Apply**:
+
+- **Duplicates**: cards that share an email, a phone (when the names could be the same
+  person) or a name, side by side with the differences highlighted. Keep left, keep right
+  (the other card is merged in and nothing on it is lost), or "Not the same person", which is
+  remembered.
+- **Names**: names that are an email address, or wrapped around one, and what they become.
+- **Industries**: suggested from the company and title by a fixed keyword list, for cards
+  without one.
+
+Each **Apply** saves a backup first and can be undone straight away.
+
+The same from the command line. All three are dry-run by default; add `--apply` to write, which saves a backup of the database to
 `data/backups/` first. To merge three cards into one, name the
 kept card in each pair (`12:34 12:35`); chains like `12:34 34:56` are refused.
 
@@ -194,16 +216,25 @@ Next.js 16 and React 19 (App Router, TypeScript), `node:sqlite`, `libphonenumber
 ## Layout
 
 - `src/app/page.tsx`: the book. `?id=` opens a card, `&edit=1` edits it, `?new=1` starts one;
+  `?import=1` and `?sheet=guide|tidy|backups|export|about` open a sheet in the card's place.
   `q`, `filter`, `source`, `industry` and `sort` describe the list and survive every click.
   `src/lib/context.ts` parses them for the page, the API and the export script alike
-- `src/app/api/contacts`: the names list as JSON; `src/app/api/vcard/[id]`: one card as a download
+- `src/app/actions.ts`: the server actions (save, delete, sample people, backups, clean-up)
+- `src/app/api/contacts`: the names list as JSON; `src/app/api/vcard/[id]`: one card as a
+  download; `src/app/api/export`: the export sheet's downloads; `src/app/api/import`: uploads
 - `src/components/`: `Book`, `GroupsPane`, `NamesPane` and `NamesList` (the windowed list),
   `CardPane` with `CardView` and `CardEdit`, `MultiField` (the ⊖ ⊕ rows), `SearchBar`,
-  `GroupsToggle` (the ribbon)
+  `GroupsToggle` (the ribbon), and the sheets: `ImportPanel`, `GuidePanel` (both on
+  `useImportRun`), `TidyPanel`, `BackupsPanel`, `ExportPanel`, `AboutPanel`
 - `src/app/globals.css`: the whole Address Book look, with the measurements it came from
-- `src/lib/db.ts`: SQLite connection, schema and migrations
+- `src/lib/db.ts`: SQLite connection, schema and migrations; `backups.ts`: backups with a record
+  of why each was taken, restore and undo; `sample.ts`: the sample people
+- `src/lib/cleanup/`: possible duplicates, name fixes and the Clean-up sheet's data;
+  `src/lib/industry.ts`: the industry keyword rules (the clean-up scripts wrap these)
 - `src/lib/contacts.ts`: queries; `names.ts`, `groups.ts`, `urls.ts`: list sorting, the Groups column, the URL model
-- `src/lib/import/`: format detection, one parser per format, phone and email normalisation, the merge engine
+- `src/lib/import/`: format detection, one parser per format, phone and email normalisation, the
+  merge engine, and `services.ts`, the guided import's list of services; `src/lib/export-guide.ts`
+  reads the export guide for `/help/export` and the guide sheet
 - `src/lib/export/`: vCard and CSV writers, and `book.ts`, which exports what the book shows (the
   export sheet's `/api/export` and `npm run export` both use it)
 - `scripts/import.ts`, `scripts/export.ts`: the command-line importer and exporter; `scripts/app/`: launchers and the desktop installer

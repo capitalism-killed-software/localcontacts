@@ -30,7 +30,8 @@ Tell us which computer you used:
 macOS and Linux: `npm run app`. Windows: `scripts\app\launch.cmd`.
 
 - [ ] The first start takes a minute (it builds), then a window opens showing a brown leather
-      book with "No cards" on the left page.
+      book. The right page says "Your address book is empty" and offers **Bring in my
+      contacts…**, **Look around with sample people** and "Where do I get my contacts?".
 - [ ] Closing that window stops the app (on Windows, close the "localcontacts server" window).
 
 If no window appears, open <http://localhost:3000> in your browser instead and note it.
@@ -39,43 +40,72 @@ If no window appears, open <http://localhost:3000> in your browser instead and n
       address>:3000` (macOS: System Settings → Wi-Fi → Details; Windows: `ipconfig`; Linux:
       `hostname -I`). It should not load.
 
-## 3. Try it with fake contacts first
+## 3. Try it with the sample people first
 
-In the terminal (stop the app first with Ctrl-C, or use a second terminal):
-`npm run import -- --apply seed/sample-contacts.csv`, then start the app again.
+Press **Look around with sample people**.
 
-- [ ] 15 people appear (the sample has one deliberate duplicate, which is merged), grouped
-      under letters, surnames in bold.
+- [ ] 15 made-up people appear, grouped under letters, surnames in bold, and a yellow note above
+      the list says they are made up.
 - [ ] Clicking a name shows their card on the right page.
 - [ ] Up and Down arrow keys move between cards. Home and End jump to the first and last.
-- [ ] Click in the names list and type the start of a surname (e.g. "lov"): it jumps to that person.
+- [ ] Click in the names list and type the start of a surname (e.g. "fis"): it jumps to that person.
 - [ ] The search box narrows the list as you type, and the open card stays open.
-- [ ] Search ignores accents, capitals and phone formatting: "nunez" finds José Núñez-Ibáñez,
-      "2025550102" finds Grace Hopper (+1-202-555-0102), and "hopper grace" finds her too.
+- [ ] Search ignores accents, capitals and phone formatting: "tomas" finds Tomás Ferreira,
+      "3035550106" finds Kwame Asante (+1 303 555 0106), and "asante kwame" finds him too.
 - [ ] The red ribbon at the top of the left page hides and shows the Groups column.
 - [ ] Clicking a group (e.g. "Missing phone") narrows the list; "All Contacts" brings everyone back.
 
-## 4. Import your own exports
+## 4. Clean up (with the sample people still there)
 
-Export your contacts from one or two places you use, following
-[Exporting your contacts](exporting-your-contacts.md) (Google, iCloud, Outlook, LinkedIn…).
+**More → Clean up…** under the groups.
 
-1. In the app press **Import…** at the bottom of the Groups column.
-2. Drop the files onto the dashed box, or click it and choose them.
+- [ ] **Duplicates** shows the two Sam Riveras side by side, with the fields that differ
+      highlighted, and says they may be two people.
+- [ ] Choose **Not the same person**, press **Apply**: the pair goes away. **Undo** brings it back.
+- [ ] Choose **Keep left**, press **Apply**: one Sam Rivera is left, with both emails, both
+      phones, both notes, and the company from the other card.
+- [ ] **Names** offers to turn "jo.baker@example.com" into "Jo Baker"; **Apply** does it.
+- [ ] **Industries** suggests one for each company (a dental clinic → Healthcare). Untick one,
+      press **Apply**: only the ticked ones are filled in, and industry groups appear under the
+      groups.
 
-- [ ] Each file gets a ✓ with its format and a number of contacts.
+## 5. Bring in your own contacts
+
+1. **More → Guided import…** (or the welcome's **Bring in my contacts…**).
+2. Tick the services you use. Each one shows its export steps and a link to the service.
+3. Export from one or two of them, and drop each file into its own box.
+
+- [ ] Each file gets a ✓ with its format and a number of contacts, and an **Import** button.
+- [ ] A file dropped in the wrong box (for example LinkedIn's file in Google's) gets a warning,
+      but can still be imported.
+- [ ] After **Import**, the box turns green with a ✓ and the list and groups update.
+- [ ] Close the sheet and open it again: the services you ticked are still ticked, and the ones
+      you imported are still green.
+- [ ] **Import…** under the groups offers "Remove the 15 sample people first", ticked. Leave it
+      ticked and import a file: the sample people and their yellow note are gone.
 - [ ] A CSV saved by Excel, including a semicolon-separated one from European settings, imports
       with its accents intact.
 - [ ] A file that is not a contact export (try any text file) gets a ✗ with an explanation, and
       the Import button does not appear until you remove it.
-- [ ] The summary shows how many are new and how many merge with people already there.
 - [ ] Nothing changes in the list until you press **Import**.
-- [ ] After **Import**, the list and groups update and it says a backup was saved.
 - [ ] Importing the same file again says "Everything in these files is already here."
 - [ ] People who appear in two exports (same email or phone) show up once, with both sources
       listed on their card.
+- [ ] Right after an import, **Undo this import** puts the book back as it was.
 
-## 5. Edit a card
+## 6. Backups
+
+**More → Backups…**
+
+- [ ] Every import, clean-up and restore you made is listed, newest first, saying what it was
+      taken before ("Before importing contacts.vcf", "Before merging duplicates"), with its date,
+      number of cards and size.
+- [ ] **Restore** on an older one asks first, then puts the book back as it was then. A new
+      backup "Before restoring the backup from …" appears at the top, and restoring that one
+      undoes the restore.
+- [ ] **Delete** asks first, then removes the backup.
+
+## 7. Edit a card
 
 - [ ] **Edit** opens the card for editing; change the name and press **Done**: the list
       re-sorts with the new name.
@@ -90,21 +120,31 @@ Export your contacts from one or two places you use, following
       away; **Cancel** just cancels.
 - [ ] **Delete Card…** asks first, then removes the card.
 
-## 6. Export
+## 8. Export
 
 - [ ] **Export vCard** on a card downloads a `.vcf` file. Opening it with your computer's own
       Contacts app (or importing it into Google Contacts) shows the same person.
-- [ ] In the terminal, `npm run export -- --format=csv --out=everyone.csv` writes a CSV that
-      opens in a spreadsheet with one column per email and phone.
+- [ ] **More → Export…** in a group (e.g. LinkedIn) says how many cards it will export, and
+      **Spreadsheet (.csv)** downloads a file named after the group and the date. It opens in a
+      spreadsheet with one column per email and phone, and phone numbers starting with + show
+      as text (with an apostrophe in front), not as a number or a formula error.
+- [ ] **vCard (.vcf)** downloads the same cards, photos included.
+- [ ] Importing the exported CSV back says "Everything in these files is already here."
 
-## 7. Bigger lists
+## 9. About and updates
+
+- [ ] **More → About localcontacts** shows the version and where the database file is.
+- [ ] **Check for updates** says you have the latest version (or names a newer one with a link).
+      Nothing is sent anywhere until you press it.
+
+## 10. Bigger lists
 
 If you have more than a few hundred contacts:
 
 - [ ] Scrolling the names list is smooth, and the current letter stays pinned at the top.
 - [ ] Clicking between cards feels instant.
 
-## 8. On a phone (optional)
+## 11. On a phone (optional)
 
 Only if the app runs on a computer your phone can reach (see the
 [deployment guide](DEPLOY.md), section 3).
@@ -113,14 +153,14 @@ Only if the app runs on a computer your phone can reach (see the
       goes back.
 - [ ] Your phone's browser offers to add it to the home screen.
 
-## 9. App icon on your computer
+## 12. App icon on your computer
 
 - [ ] macOS or Linux: `bash scripts/app/install-desktop.sh` puts **localcontacts** in your
       Applications (macOS) or app launcher (Linux) with a leather-book icon, and opening it
       starts the app. **On a Mac this has never been tried: please report exactly what happens.**
 - [ ] Any OS: in Chrome or Edge, the install icon in the address bar adds it as an app.
 
-## 10. Docker (optional, for home servers)
+## 13. Docker (optional, for home servers)
 
 `docker compose up -d --build`, then <http://localhost:3000>.
 

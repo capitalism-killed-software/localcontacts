@@ -1,5 +1,59 @@
 # Changelog
 
+## Unreleased (1.1)
+
+Everything can now be done from the book, without a terminal.
+
+**Starting**
+- An empty book greets you with three ways in: a guided import, 15 made-up sample people to try
+  things on, and the export guide.
+- Sample people are marked as made up, with a one-click way to remove them. Real contacts are
+  never merged into them, and importing your own files offers to remove them first.
+- A guided import (**More → Guided import…**): pick the services you use, and each one gets its
+  export steps from the guide, a link to the service, and a box for its file. A box ticks itself
+  once that service's contacts are in the book, so you can stop and come back; a file that
+  doesn't look like that service's export gets a warning, not a refusal.
+
+**Clean-up in the book** (**More → Clean up…**)
+- Possible duplicates side by side, with what differs highlighted and why they are shown (same
+  email, same phone, same name). Keep left, keep right (the same lossless merge as
+  `merge:dupes`), or "Not the same person", which is remembered.
+- Names that are an email address, and suggested industries, each as a preview you can untick.
+- Each Apply saves one backup first and can be undone straight away. What to change is worked
+  out again when you press Apply, so a page left open can't write a stale suggestion.
+
+**Backups in the book** (**More → Backups…**)
+- Every backup says what it was taken before ("Before importing google.vcf", "Before merging
+  duplicates"), with its date, number of cards and size.
+- Restore any backup: the book as it is is saved first, and the restore happens in one step on
+  the running app, so nothing needs stopping and card numbers are never reused. Delete the ones
+  you don't need.
+- **Undo this import** right after an import, and "Undo the last import" on the Backups sheet,
+  which warns when the book has changed since.
+
+**Export in the book** (**More → Export…**)
+- The whole book, a group or a search, as vCard (photos included) or as a spreadsheet (CSV),
+  named after what is in it (`contacts-linkedin-2026-11-04.csv`).
+- The CSV is Excel-safe: a cell starting with `=`, `+`, `-` or `@` gets an apostrophe in front,
+  so a spreadsheet shows it as text instead of running it. Importing the file takes it off again.
+  `npm run export` writes values exactly unless given `--excel`.
+
+**About and updates**
+- **More → About localcontacts**: the version, where the database and backups are, and a
+  **Check for updates** button. It asks GitHub for the latest release only when pressed; nothing
+  else ever leaves the computer, and in a production build the browser refuses connections to
+  anywhere but the app and GitHub's API.
+
+**Security**
+- Reads of the API (exports, cards, photos, the names list) are refused when the browser says
+  another site, or another app on this computer, asked for them.
+- The service worker no longer handles requests to other sites.
+
+**For developers**
+- The clean-up scripts are wrappers over `src/lib/cleanup/` and `src/lib/industry.ts`; exports
+  go through `src/lib/export/book.ts`; backups live in `src/lib/backups.ts`.
+- Browser tests have a second server with an empty book, for the first-run tests.
+
 ## 1.0.0 (2026-11-04)
 
 The first public release.
