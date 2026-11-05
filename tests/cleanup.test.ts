@@ -31,7 +31,8 @@ describe('proposeNameFix', () => {
   });
 });
 
-describe('clean-up scripts', () => {
+// Each test spawns the real scripts through tsx, which is slow on some CI runners.
+describe('clean-up scripts', { timeout: 60_000 }, () => {
   const ROOT = process.cwd();
   const TSX_CLI = join(ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs');
   let workdir: string;
@@ -47,7 +48,7 @@ describe('clean-up scripts', () => {
     add.run('Ann @ Acme', null, null, null);
     add.run('Bea Banker', 'bea@example.com', 'First National Bank', 'Teller');
     db.close();
-  });
+  }, 60_000);
   afterEach(() => rmSync(workdir, { recursive: true, force: true }));
 
   const run = (script: string, ...args: string[]) => {

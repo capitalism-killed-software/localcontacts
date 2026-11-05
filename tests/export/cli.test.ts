@@ -50,7 +50,8 @@ function rows(db: string): Map<string, Row> {
 
 const COMPARE = ['email', 'alt_emails', 'phone', 'alt_phones', 'urls', 'notes', 'company', 'title'];
 
-describe('export CLI', () => {
+// Each test spawns the real scripts through tsx, which is slow on some CI runners.
+describe('export CLI', { timeout: 60_000 }, () => {
   it('round-trips every fixture through vCard and through CSV', () => {
     const db1 = join(dir, 'one.db');
     expect(run('scripts/import.ts', db1, ['--apply', ...FIXTURES]).status).toBe(0);

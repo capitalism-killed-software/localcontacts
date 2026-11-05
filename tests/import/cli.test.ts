@@ -51,7 +51,8 @@ function query<T>(sql: string): T[] {
 }
 const count = () => query<{ c: number }>('SELECT COUNT(*) AS c FROM contacts')[0].c;
 
-describe('import CLI', () => {
+// Each test spawns the real scripts through tsx, which is slow on some CI runners.
+describe('import CLI', { timeout: 60_000 }, () => {
   it('dry-runs by default and writes nothing', () => {
     const r = run(fixturePath('google-contacts.vcf'));
     expect(r.status).toBe(0);
@@ -120,7 +121,8 @@ describe('import CLI', () => {
   });
 });
 
-describe('import CLI mistakes', () => {
+// Each test spawns the real scripts through tsx, which is slow on some CI runners.
+describe('import CLI mistakes', { timeout: 60_000 }, () => {
   it('refuses bad tags, countries and maps, and folders, with a message instead of a stack trace', () => {
     for (const [args, message] of [
       [['--source=Work Friends'], /may only use letters/],

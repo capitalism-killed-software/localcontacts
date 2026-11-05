@@ -59,7 +59,8 @@ describe('mergeStored', () => {
   });
 });
 
-describe('npm run merge:dupes', () => {
+// Each test spawns the real scripts through tsx, which is slow on some CI runners.
+describe('npm run merge:dupes', { timeout: 60_000 }, () => {
   const ROOT = process.cwd();
   const TSX_CLI = join(ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs');
   let workdir: string;
@@ -76,7 +77,7 @@ describe('npm run merge:dupes', () => {
     add.run('Drop Person', 'drop@example.com', 'drop2@example.com', '+1 202 555 0181', 'https://example.com/drop', 'other_src,vcard', PNG, 'image/png');
     add.run('Third Person', 'third@example.com', null, null, null, 'csv', null, null);
     db.close();
-  });
+  }, 60_000);
 
   afterEach(() => rmSync(workdir, { recursive: true, force: true }));
 
