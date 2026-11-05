@@ -1,7 +1,7 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { DatabaseSync } from 'node:sqlite';
-import { dbPath, getDb } from './db';
+import { DatabaseSync } from 'node:sqlite';
+import { dbPath, getDb, migrateData } from './db';
 import pkg from '../../package.json';
 
 // Backups of the whole database, saved next to it in backups/ before anything
@@ -132,4 +132,85 @@ export function bulkWrite<T>(
   if (dbPath() !== ':memory:') db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
   if (backup) finishBackup(backup, listVersionOf(db));
   return { result, backup };
+}
+
+const fileOf = (name: string): string => {
+  const dir = backupsDir();
+  if (!dir || !isBackupName(name)) throw new Error('That is not a backup of this book.');
+  const file = join(dir, name);
+  if (!existsSync(file)) throw new Error('That backup is no longer there.');
+  return file;
+};
+
+const columnsOf = (db: DatabaseSync, schema: string): string[] =>
+  (db.prepare(`PRAGMA ${schema}.table_info(contacts)`).all() as Array<{ name: string }>).map((c) => c.name);
+
+const busy = (err: unknown): Error =>
+  /locked|busy/i.test(String((err as Error)?.message))
+    ? new Error('The database is busy (another program is writing to it). Try again in a moment.')
+    : (err as Error);
+
+/**
+ * Puts the book back as it was in a backup. The current state is saved first
+ * (as a "restore" backup), then the backup's cards replace the current ones in
+ * one transaction on the open connection: the database file itself is never
+ * swapped, which would be unsafe while the app has it open (and impossible on
+ * Windows). Card ids keep counting up, so an id is never reused.
+ */
+export function restoreBackup(name: string): { saved: string | null; cards: number } {
+  const file = fileOf(name);
+  // Check it reads as a contacts database before touching anything.
+  const src = new DatabaseSync(file, { readOnly: true });
+  try {
+    const check = src.prepare('PRAGMA quick_check').get() as Record<string, string>;
+    if (Object.values(check)[0] !== 'ok') throw new Error('That backup is damaged.');
+    const cols = columnsOf(src, 'main');
+    if (!cols.includes('id') || !cols.includes('full_name')) throw new Error('That file is not a contacts backup.');
+  } finally {
+    src.close();
+  }
+
+  const saved = backupDatabase('restore', name);
+  const db = getDb();
+  db.prepare('ATTACH DATABASE ? AS b').run(file);
+  try {
+    const have = new Set(columnsOf(db, 'b'));
+    const shared = columnsOf(db, 'main').filter((c) => have.has(c)).map((c) => `"${c}"`).join(', ');
+    try {
+      db.exec('BEGIN IMMEDIATE');
+    } catch (err) {
+      throw busy(err);
+    }
+    try {
+      db.exec('DELETE FROM main.contacts');
+      db.exec(`INSERT INTO main.contacts (${shared}) SELECT ${shared} FROM b.contacts`);
+      migrateData(db);
+      db.exec('COMMIT');
+    } catch (err) {
+      db.exec('ROLLBACK');
+      throw busy(err);
+    }
+  } finally {
+    db.exec('DETACH DATABASE b');
+  }
+  if (dbPath() !== ':memory:') db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+  if (saved) finishBackup(saved, listVersionOf(db));
+  return { saved, cards: (db.prepare('SELECT COUNT(*) AS c FROM contacts').get() as { c: number }).c };
+}
+
+/** Deletes a backup and its record. */
+export function deleteBackup(name: string): void {
+  const file = fileOf(name);
+  rmSync(file, { force: true });
+  rmSync(recordPath(file), { force: true });
+}
+
+/**
+ * The newest import that can be undone, and whether anything changed since it
+ * (then undoing it also undoes those later changes, which are saved first).
+ */
+export function lastImport(): { entry: BackupEntry; changedSince: boolean } | null {
+  const entry = listBackups().find((b) => b.record?.reason === 'import' && b.record.after);
+  if (!entry) return null;
+  return { entry, changedSince: listVersionOf(getDb()) !== entry.record!.after };
 }

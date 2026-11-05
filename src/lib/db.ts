@@ -66,11 +66,7 @@ function open(): DatabaseSync {
   // with the rest of a contact; the bytes are fetched on their own.
   if (!names.has('photo')) db.exec(`ALTER TABLE contacts ADD COLUMN photo BLOB`);
   if (!names.has('photo_type')) db.exec(`ALTER TABLE contacts ADD COLUMN photo_type TEXT`);
-  // Notes are stored with \n line breaks; older versions kept \r\n from Windows
-  // files and from the edit form, which doubled the note on every export and
-  // re-import. Cheap and idempotent.
-  db.exec(`UPDATE contacts SET notes = replace(replace(notes, char(13) || char(10), char(10)), char(13), char(10))
-           WHERE instr(notes, char(13)) > 0`);
+  migrateData(db);
   // For search: fold() compares text without case or accents, phone_match()
   // compares numbers by their digits (src/lib/fold.ts).
   db.function('fold', { deterministic: true }, (v) => (v === null || v === undefined ? null : fold(String(v))));
@@ -78,6 +74,15 @@ function open(): DatabaseSync {
     phoneMatches(phone == null ? null : String(phone), others == null ? null : String(others), String(typed)) ? 1 : 0
   );
   return db;
+}
+
+// Fixes to data written by older versions. Run when the database opens and after
+// a backup is restored. Cheap and idempotent.
+export function migrateData(db: DatabaseSync): void {
+  // Notes are stored with \n line breaks; older versions kept \r\n from Windows
+  // files and from the edit form, which doubled the note on every export and re-import.
+  db.exec(`UPDATE contacts SET notes = replace(replace(notes, char(13) || char(10), char(10)), char(13), char(10))
+           WHERE instr(notes, char(13)) > 0`);
 }
 
 export function getDb(): DatabaseSync {

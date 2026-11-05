@@ -88,3 +88,77 @@ describe('imports', () => {
     expect(b.record!.after).toBe(listVersion());
   });
 });
+
+describe('restoreBackup', () => {
+  const names = () => (getDb().prepare('SELECT full_name FROM contacts ORDER BY id').all() as Array<{ full_name: string }>).map((r) => r.full_name);
+  const nameOf = (file: string) => file.split(/[\\/]/).pop()!;
+
+  it('puts the book back as it was, after saving the current state, and never reuses an id', async () => {
+    const { restoreBackup } = await import('../src/lib/backups');
+    createContact({ full_name: 'Ada Lovelace' });
+    createContact({ full_name: 'Grace Hopper' });
+    const file = backupDatabase('import', 'a.vcf')!;
+    getDb().prepare("DELETE FROM contacts WHERE full_name = 'Ada Lovelace'").run();
+    const later = createContact({ full_name: 'Alan Turing' });
+    const r = restoreBackup(nameOf(file));
+    expect(r.cards).toBe(2);
+    expect(names()).toEqual(['Ada Lovelace', 'Grace Hopper']);
+    // The state before the restore was saved, and a new card gets a fresh id.
+    expect(listBackups()[0].record).toMatchObject({ reason: 'restore', detail: nameOf(file), cards: 2 });
+    expect(createContact({ full_name: 'New Card' }).id).toBeGreaterThan(later.id);
+    // The backup is detached again.
+    expect((getDb().prepare('PRAGMA database_list').all() as Array<{ name: string }>).map((d) => d.name)).not.toContain('b');
+  });
+
+  it('restores a backup from an older version that lacks newer columns', async () => {
+    const { restoreBackup } = await import('../src/lib/backups');
+    const { DatabaseSync } = await import('node:sqlite');
+    createContact({ full_name: 'Current Card', alt_emails: 'x@example.com' });
+    backupDatabase('import', null); // creates the backups folder
+    const old = new DatabaseSync(join(dir, 'backups', 'contacts-20250101-090000.db'));
+    old.exec("CREATE TABLE contacts (id INTEGER PRIMARY KEY AUTOINCREMENT, full_name TEXT NOT NULL, email TEXT, notes TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')))");
+    old.prepare('INSERT INTO contacts (full_name, email, notes) VALUES (?, ?, ?)').run('Old Card', 'old@example.com', 'one\r\ntwo');
+    old.close();
+    restoreBackup('contacts-20250101-090000.db');
+    const row = getDb().prepare('SELECT full_name, email, alt_emails, notes FROM contacts').get();
+    expect(row).toEqual({ full_name: 'Old Card', email: 'old@example.com', alt_emails: null, notes: 'one\ntwo' });
+  });
+
+  it('refuses anything that is not one of its backups, and changes nothing', async () => {
+    const { restoreBackup } = await import('../src/lib/backups');
+    createContact({ full_name: 'Ada Lovelace' });
+    for (const bad of ['../contacts.db', 'contacts.db', 'contacts-20991231-235959.db']) {
+      expect(() => restoreBackup(bad), bad).toThrow(/not a backup|no longer there/);
+    }
+    expect(names()).toEqual(['Ada Lovelace']);
+    expect(listBackups()).toHaveLength(0);
+  });
+
+  it('rolls back when a card cannot be copied, leaving the book as it was', async () => {
+    const { restoreBackup } = await import('../src/lib/backups');
+    const { DatabaseSync } = await import('node:sqlite');
+    createContact({ full_name: 'Ada Lovelace' });
+    backupDatabase('import', null);
+    const bad = new DatabaseSync(join(dir, 'backups', 'contacts-20250101-090000.db'));
+    bad.exec('CREATE TABLE contacts (id INTEGER PRIMARY KEY, full_name TEXT)');
+    bad.prepare('INSERT INTO contacts (full_name) VALUES (NULL)').run();
+    bad.close();
+    expect(() => restoreBackup('contacts-20250101-090000.db')).toThrow();
+    expect(names()).toEqual(['Ada Lovelace']);
+    expect((getDb().prepare('PRAGMA database_list').all() as Array<{ name: string }>).map((d) => d.name)).not.toContain('b');
+  });
+
+  it('deletes a backup with its record, and knows whether the last import can be undone cleanly', async () => {
+    const { deleteBackup, lastImport } = await import('../src/lib/backups');
+    createContact({ full_name: 'Someone Already Here' });
+    runImport([{ name: 'friends.csv', bytes: Buffer.from('Name,Email\nNew Person,new@example.com\n') }], { apply: true });
+    expect(lastImport()).toMatchObject({ entry: { record: { detail: 'friends.csv' } }, changedSince: false });
+    getDb().prepare("UPDATE contacts SET title = 'Edited', updated_at = datetime('now', '+1 minute')").run();
+    expect(lastImport()!.changedSince).toBe(true);
+    const { name } = lastImport()!.entry;
+    deleteBackup(name);
+    expect(listBackups()).toHaveLength(0);
+    expect(lastImport()).toBeNull();
+    expect(() => deleteBackup('../contacts.db')).toThrow(/not a backup/);
+  });
+});
