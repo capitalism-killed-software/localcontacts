@@ -120,7 +120,11 @@ options if the server holds other sensitive things.
 
 Every import that adds or changes a card (from the import page or `npm run import -- --apply`),
 and every clean-up script run with `--apply`, first saves a consistent copy of the database to
-`data/backups/contacts-<date>-<time>.db`. Delete old ones whenever you like.
+`data/backups/contacts-<date>-<time>.db`, in local time; a second backup in the same second gets
+a letter (`…-180800b.db`) so the names sort in order. Delete old ones whenever you like.
+
+Inside Docker the clock is UTC unless you give the container your time zone: uncomment the `TZ`
+line under `environment:` in `docker-compose.yml` (for example `- TZ=Europe/London`).
 
 For your own backups: the database uses SQLite's write-ahead log, so a plain file copy while the app is running
 can miss the most recent writes. Either stop the app and copy the file, or ask SQLite for

@@ -14,3 +14,5 @@ services:
       - CONTACTS_DEFAULT_COUNTRY=US
       # Names other than localhost you reach it by (Tailscale IP, proxy hostname):
       # - CONTACTS_ALLOWED_HOSTS=100.64.1.2,contacts.example.com
+      # Your time zone, so backup file names show your local time (otherwise UTC):
+      # - TZ=America/Los_Angeles

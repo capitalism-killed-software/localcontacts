@@ -34,7 +34,11 @@ CONTACTS_DB_PATH=/tmp/try.db npm run dev
 
 CI runs typecheck and tests on Ubuntu, macOS and Windows with Node 22 and 24, so avoid
 shell-specific paths and `node_modules/.bin` in tests (spawn `node node_modules/tsx/dist/cli.mjs`
-instead, as `tests/import/cli.test.ts` does).
+instead, as `tests/import/cli.test.ts` does). Suites that spawn the scripts are slow on some CI
+runners: give their `describe` (and any setup hook that spawns) `{ timeout: 60_000 }`.
+
+Every bug fix comes with a test that fails without the fix: a unit test in `tests/`, or a browser
+test in `tests/e2e/` for what only the page shows.
 
 ## Adding an import format
 
@@ -51,8 +55,13 @@ instead, as `tests/import/cli.test.ts` does).
 6. **Docs:** the table in `README.md` and a section in `docs/exporting-your-contacts.md` with the
    export steps and a link to the vendor's help page.
 
-The merge engine (`src/lib/import/merge.ts`) matches on any email, then any phone (unless the
-emails disagree), then the normalised name. It fills gaps and never overwrites stored values.
+The merge engine (`src/lib/import/merge.ts`) matches a card from our own export to the card its
+id names first (`UID:localcontacts-12`, when the name agrees); then on any email; then on any
+phone, only when the names could be the same person and the emails don't disagree; then on the
+normalised name, unless the two cards disagree on both their emails and their phones. It fills
+gaps and never overwrites stored values; a different title or company on a name match goes into
+the note. Source tags follow `src/lib/import/tags.ts` everywhere (import page, command line, our
+own exports).
 
 ## The interface
 
@@ -65,9 +74,14 @@ in `src/lib/window.ts`. URL parameters are parsed once, in `src/lib/context.ts`.
 ## Import page and photos
 
 The import page (`src/components/ImportPanel.tsx`) posts files to `/api/import`, which calls the
-same `runImport` as the command line; keep both on that one function. The endpoint rejects
-requests from other origins because the app has no login. Photos are validated by their bytes
-in `src/lib/photo.ts`; never trust a file name or a declared type, and never fetch a photo URL.
+same `runImport` as the command line; keep both on that one function. The app has no login, so
+every write (card saves, deletes, imports) is checked once, in `src/proxy.ts`: the host must be
+allowed and the request must come from the app's own pages (`isWriteFromApp` in
+`src/lib/hosts.ts`). Photos are validated by their bytes in `src/lib/photo.ts`, and must be whole
+images (`isWholeImage`); never trust a file name or a declared type, and never fetch a photo URL.
+
+Search and name sorting compare text through `src/lib/fold.ts` (no case, no accents, ø → o and
+the like); it is also registered as an SQL function when the database opens.
 
 ## Export
 
