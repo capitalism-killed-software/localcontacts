@@ -140,10 +140,96 @@ Ubuntu VM (`npm start`, `npm run app` and Docker each listen on this computer on
 - Hand testing on macOS, Windows and Linux with `docs/TESTING.md`, including the first run of
   `scripts/app/install-desktop.sh` on a Mac and `scripts/app/launch.cmd` on Windows. What it
   finds goes into 1.0.1, each fix with a test.
-- After 1.0: store a vCard's structured name; read imports as a stream so a large file doesn't
-  take GBs of memory; industry groups that ignore case; installers that bundle Node so people
-  need not install it; more import formats if people ask (LDIF, Zoho); re-check the export guide
-  against the vendors' pages every few months.
+## After 1.0: getting people who don't use a terminal on board
+
+Today, starting means installing Node.js and running `npm install`, then facing an empty book.
+The sample data, a whole-book export, the clean-up scripts and restoring a backup are command
+line only. The next releases are about people who will never open a terminal. The ground rules
+in [ABOUT.md](ABOUT.md) stay:
+- nothing goes to a third party;
+- no AI on contacts;
+- the file is the product;
+- imports are lossless.
+
+Two things are allowed that bend "no network calls" slightly, and both are something you
+start: phone access to your own computer over your own network, and an update check you click.
+
+### 1.1: No terminal needed
+
+- **A first-run welcome when the book is empty:**
+  - bring in my contacts;
+  - look around with sample people, in a separate demo book with a one-click way out;
+  - where do I get my contacts?
+- **A guided import checklist:**
+  - pick the services you use;
+  - each one gets its export steps, a link to the vendor's export page, and a drop slot that
+    ticks itself when its file is in;
+  - resume it later;
+  - finish with a summary.
+- **Clean-up in the page:**
+  - possible duplicates side by side, merged in one click with the same lossless merge as
+    `merge:dupes`;
+  - tidy names with a preview;
+  - suggested industries with a preview;
+  - each one backs up first.
+- **Backups in the page:** a list of backups, undo the last import, and restore any backup
+  (after saving the current state).
+- **Export in the page:** the whole book, a group or a search, as vCard or CSV.
+- **Check for updates:** a button that asks GitHub for the latest release, only when clicked.
+
+### 1.2: Download, double-click
+
+- **Installers** for macOS, Windows and Linux that bundle the runtime: one icon, no terminal.
+  They replace the launch scripts, and the data stays in a user folder. Code signing needs a
+  decision first: unsigned apps show warnings that put off exactly these users.
+
+### 1.3: Nothing you care about is lost
+
+- **More fields:** postal addresses, birthdays and anniversaries, nicknames, the structured name
+  (prefix, given, middle, family, suffix), department, related people, and chat and social
+  handles. They are kept on import, shown and edited on the card, and written back on export.
+  This closes today's documented limits.
+- **Your own groups:** create them and add or remove cards (several at once). Apple and vCard 4
+  group cards and `CATEGORIES` come in as groups.
+- **Export presets** for Google CSV, Outlook CSV and Apple vCard, so leaving is as easy as
+  arriving.
+
+### 1.4: On your phone
+
+- **Phone access over your own network (CardDAV):**
+  - off by default;
+  - when turned on, your computer serves the book to your phone's own Contacts app over Wi-Fi
+    or a VPN like Tailscale;
+  - read-only first, edits later;
+  - each device gets its own app password, over HTTPS.
+
+  It gets its own security design before it is built.
+- **Everyday groups:** upcoming birthdays, and people you haven't been in touch with for six
+  months.
+
+### Later, as people ask
+
+- An optional passcode for shared computers, and password-protected backups.
+- Interface languages and date formats.
+- An accessibility pass.
+- An import history.
+- A reminder to refresh an export after a few months.
+- Printing.
+- Reading imports as a stream, so a large file doesn't take GBs of memory.
+- Industry groups that ignore case.
+- More import formats if people ask (LDIF, Zoho).
+- Re-checking the export guide against the vendors' pages every few months.
+- Outside the app: a small website with a short walkthrough, a download button per OS and the
+  privacy promise.
+
+### Deliberately not
+
+| Often asked for | Why not | Instead |
+|---|---|---|
+| Cloud accounts and sync | your contacts would live on someone else's servers | phone access to your own computer (1.4) |
+| Pulling straight from Google, Microsoft or LinkedIn | stored access tokens and network calls to those services | the guided export checklist (1.1) |
+| AI enrichment or de-duplication | it would invent or move facts about real people | duplicate review with readable rules (1.1) |
+| Team sharing | single user by design | export a group and send the file |
 
 ## Decisions taken
 
