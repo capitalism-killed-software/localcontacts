@@ -26,6 +26,8 @@ type Card = {
   connected: string | null;
   contacted: string | null;
   industry: string | null;
+  fnPref: number;
+  group: boolean; // a contact group (Apple's KIND:group card), not a person
   own: boolean; // written by localcontacts' own export
   nameless: boolean; // our export's marker for a card without a name
   categories: string[];
@@ -33,6 +35,14 @@ type Card = {
 
 const ENCODINGS = new Set(['QUOTED-PRINTABLE', 'BASE64', 'B', '8BIT', '7BIT']);
 const IGNORED = new Set(['ADR', 'BDAY', 'LOGO', 'SOUND', 'KEY', 'GEO', 'ANNIVERSARY']);
+// Bookkeeping that carries nothing about the person, so it isn't reported as "not imported".
+const SILENT = new Set([
+  'VERSION', 'REV', 'KIND', 'X-ADDRESSBOOKSERVER-KIND', 'X-ADDRESSBOOKSERVER-MEMBER', 'MEMBER', 'X-ABLABEL',
+  'X-ABUID', 'X-ABSHOWAS', 'SORT-STRING', 'CLASS', 'MAILER', 'SOURCE', 'NAME', 'PROFILE', 'AGENT',
+  'X-PHONETIC-FIRST-NAME', 'X-PHONETIC-MIDDLE-NAME', 'X-PHONETIC-LAST-NAME', 'X-PHONETIC-ORG',
+]);
+// Text properties whose value may be base64-encoded (rare, but some exporters do it).
+const TEXT_PROPS = new Set(['FN', 'N', 'NOTE', 'ORG', 'TITLE', 'EMAIL', 'TEL', 'URL'])
 
 type PhotoSkip = 'link' | 'not-image' | 'too-large' | 'empty';
 
@@ -186,7 +196,10 @@ function splitComponents(v: string, sep = ';'): string[] {
 // The property's text, or null when it is binary (base64) and not wanted.
 function decodeValue(p: Prop): string | null {
   const enc = p.params.get('ENCODING')?.[0];
-  if (enc === 'B' || enc === 'BASE64') return null;
+  if (enc === 'B' || enc === 'BASE64') {
+    if (!TEXT_PROPS.has(p.name)) return null;
+    return Buffer.from(p.value.replace(/\s+/g, ''), 'base64').toString('utf-8');
+  }
   if (enc === 'QUOTED-PRINTABLE') return decodeQP(p.value, p.params.get('CHARSET')?.[0] ?? null);
   return p.value;
 }
@@ -207,7 +220,7 @@ function hintFromProdId(v: string): string | null {
   return null;
 }
 
-const newCard = (): Card => ({ fn: null, n: null, emails: [], tels: [], org: null, title: null, notes: [], urls: [], photo: null, uid: null, connected: null, contacted: null, industry: null, own: false, nameless: false, categories: [] });
+const newCard = (): Card => ({ fn: null, n: null, emails: [], tels: [], org: null, title: null, notes: [], urls: [], photo: null, uid: null, connected: null, contacted: null, industry: null, fnPref: Infinity, group: false, own: false, nameless: false, categories: [] });
 
 const byPref = (a: Ranked, b: Ranked) => a.pref - b.pref || a.i - b.i;
 
@@ -249,27 +262,56 @@ export function parseVcard(text: string): ParseResult {
   let photos = 0;
   const photoSkips = new Map<PhotoSkip, number>();
   let card: Card | null = null;
+  let lastProp: string | null = null;
+  let embeddedDepth = 0; // inside a vCard 2.1 AGENT's embedded card
+  let embedded = 0;
+  let unclosed = 0;
+  let groups = 0;
+  const notKept = (name: string) => ignored.set(name, (ignored.get(name) ?? 0) + 1);
+  const finish = (c: Card) => {
+    if (!c.own && c.categories.length) notKept('CATEGORIES');
+    if (c.group) {
+      groups++;
+      return;
+    }
+    const contact = toContact(c);
+    if (contact) contacts.push(contact);
+    else skipped++;
+  };
 
   for (const line of unfold(text)) {
     const trimmed = line.trim();
+    if (embeddedDepth > 0) {
+      if (/^BEGIN:VCARD$/i.test(trimmed)) embeddedDepth++;
+      else if (/^END:VCARD$/i.test(trimmed)) embeddedDepth--;
+      continue;
+    }
     if (/^BEGIN:VCARD$/i.test(trimmed)) {
+      if (card && lastProp === 'AGENT') {
+        // AGENT: the person's assistant, written as a whole card inside this one.
+        embeddedDepth = 1;
+        embedded++;
+        continue;
+      }
+      if (card) {
+        unclosed++;
+        finish(card);
+      }
       card = newCard();
+      lastProp = null;
       continue;
     }
     if (/^END:VCARD$/i.test(trimmed)) {
-      if (card) {
-        const c = toContact(card);
-        if (c) contacts.push(c);
-        else skipped++;
-      }
+      if (card) finish(card);
       card = null;
       continue;
     }
     if (!card) continue;
     const p = parseProp(line);
     if (!p) continue;
+    lastProp = p.name;
     if (IGNORED.has(p.name)) {
-      ignored.set(p.name, (ignored.get(p.name) ?? 0) + 1);
+      notKept(p.name);
       continue;
     }
     if (p.name === 'PHOTO') {
@@ -282,18 +324,32 @@ export function parseVcard(text: string): ParseResult {
       continue;
     }
     const v = decodeValue(p);
-    if (v === null) continue;
+    if (v === null) {
+      if (!SILENT.has(p.name)) notKept(p.name);
+      continue;
+    }
     switch (p.name) {
       case 'PRODID':
         sourceHint ??= hintFromProdId(v);
         if (/^-\/\/localcontacts\/\/EN$/i.test(v.trim())) card.own = true;
         break;
+      case 'KIND':
+      case 'X-ADDRESSBOOKSERVER-KIND':
+        if (/^group$/i.test(v.trim())) card.group = true;
+        break;
       case 'CATEGORIES':
         card.categories.push(...splitComponents(v, ',').filter(Boolean));
         break;
-      case 'FN':
-        if (!card.fn) card.fn = clean(unescapeText(v));
+      case 'FN': {
+        // vCard 4.0 may give several names; the lowest PREF wins.
+        const fn = clean(unescapeText(v));
+        const rank = pref(p);
+        if (fn && rank < card.fnPref) {
+          card.fn = fn;
+          card.fnPref = rank;
+        }
         break;
+      }
       case 'N':
         if (!card.n) card.n = splitComponents(v);
         break;
@@ -303,11 +359,16 @@ export function parseVcard(text: string): ParseResult {
       case 'TEL':
         card.tels.push({ v: v.trim().replace(/^tel:/i, ''), pref: pref(p), i: card.tels.length });
         break;
-      case 'ORG':
-        if (!card.org) card.org = clean(splitComponents(v).filter(Boolean)[0] ?? '');
+      case 'ORG': {
+        const [org, ...units] = splitComponents(v);
+        if (card.org) notKept('a second ORG');
+        else card.org = clean(org ?? '') ?? clean(units.find(Boolean) ?? '');
+        if (org && units.some(Boolean)) notKept('ORG department');
         break;
+      }
       case 'TITLE':
-        if (!card.title) card.title = clean(unescapeText(v));
+        if (card.title) notKept('a second TITLE');
+        else card.title = clean(unescapeText(v));
         break;
       case 'NOTE': {
         const t = clean(unescapeText(v));
@@ -335,16 +396,31 @@ export function parseVcard(text: string): ParseResult {
         if (u) card.urls.push(u);
         break;
       }
+      // Apple's social profiles: keep the ones that are links.
+      case 'X-SOCIALPROFILE': {
+        const u = clean(v);
+        if (u && /^https?:\/\//i.test(u)) card.urls.push(u);
+        else notKept(p.name);
+        break;
+      }
       default:
+        if (!SILENT.has(p.name)) notKept(p.name);
         break;
     }
+  }
+  if (card) {
+    unclosed++;
+    finish(card);
   }
 
   const warnings: string[] = [];
   if (skipped) warnings.push(`${skipped} empty card(s) skipped (no name, email or phone)`);
+  if (unclosed) warnings.push(`${unclosed} card(s) had no END:VCARD (the file may be cut off); imported as far as they go`);
+  if (embedded) warnings.push(`${embedded} card(s) embedded in another card (AGENT) skipped`);
+  if (groups) warnings.push(`${groups} group card(s) skipped: groups from other apps are not imported`);
   if (ignored.size) {
     const parts = [...ignored].map(([k, n]) => `${k} ×${n}`).join(', ');
-    warnings.push(`not imported: ${parts} (addresses and birthdays are not kept)`);
+    warnings.push(`not imported: ${parts}`);
   }
   if (photos) warnings.push(`${photos} photo(s) kept`);
   const why: Record<PhotoSkip, string> = {

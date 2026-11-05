@@ -245,6 +245,7 @@ export function planMerge(
   const byEmail = new Map<string, Rec>();
   const byPhone = new Map<string, Rec>();
   const byName = new Map<string, Rec>();
+  const phoneOwners = new Map<string, Set<Rec>>(); // to see when a number is shared
   const all: Rec[] = [];
 
   const nameOf = (r: Rec): string => (r.full_name === NO_NAME ? '' : nameKey(r.full_name));
@@ -256,7 +257,11 @@ export function planMerge(
     }
     for (const p of r.phones) {
       const k = phoneKey(p, country);
-      if (k && !byPhone.has(k)) byPhone.set(k, r);
+      if (!k) continue;
+      if (!byPhone.has(k)) byPhone.set(k, r);
+      const owners = phoneOwners.get(k) ?? new Set<Rec>();
+      owners.add(r);
+      phoneOwners.set(k, owners);
     }
     const nk = nameOf(r);
     if (nk && !byName.has(nk)) byName.set(nk, r);
@@ -291,6 +296,9 @@ export function planMerge(
     for (const p of r.phones) {
       const k = phoneKey(p, country);
       const hit = k ? byPhone.get(k) : undefined;
+      // A nameless card on a number several people share (an office line) can't
+      // be told apart, so it isn't merged into whichever of them came first.
+      if (hit && r.full_name === NO_NAME && (phoneOwners.get(k!)?.size ?? 0) > 1) continue;
       if (hit && !emailsConflict(r, hit) && namesCompatible(r.full_name, hit.full_name) && !sameFileDifferentCard(r, hit)) {
         return { hit, byName: false };
       }

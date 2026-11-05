@@ -6,7 +6,8 @@ export const unixLines = (s: string): string => s.replace(/\r\n?/g, '\n');
 
 export const clean = (v: string | null | undefined): string | null => {
   if (v === null || v === undefined) return null;
-  const t = unixLines(String(v)).trim();
+  // A NUL would cut the text short in the database.
+  const t = unixLines(String(v)).replace(/\u0000/g, '').trim();
   return t.length === 0 ? null : t;
 };
 
@@ -68,8 +69,14 @@ export function dedupeBy<T>(items: T[], key: (t: T) => string | null): T[] {
 
 const trimmed = (list: string[]) => list.map((s) => s.trim()).filter((s) => s.length > 0);
 
+// The addresses in an email value: "mailto:" dropped, a cell holding several
+// ("a@x.com, b@x.com; c@x.com") split, and anything that is not an address (an
+// Exchange "/o=..." path, a phone number in the wrong column) left out.
+const ADDRESS = /[^\s@<>,;:"'()[\]]+@[^\s@<>,;:"'()[\]]+\.[^\s@<>,;:"'()[\]]+/g;
+export const extractEmails = (v: string): string[] => v.match(ADDRESS) ?? [];
+
 export const dedupeEmails = (list: string[]): string[] =>
-  dedupeBy(trimmed(list), (e) => emailKey(e) ?? e.toLowerCase());
+  dedupeBy(trimmed(list).flatMap(extractEmails), (e) => emailKey(e) ?? e.toLowerCase());
 
 export const dedupePhones = (list: string[], country: CountryCode): string[] =>
   dedupeBy(trimmed(list), (p) => phoneKey(p, country) ?? p);

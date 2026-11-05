@@ -69,3 +69,14 @@ The first public release.
   empty company field (or is left alone when the card names another company), and quoted
   `"Name" <address>` forms are tidied. It and `classify:industry` save a backup first, answer
   `--help` and refuse unknown options.
+- vCard quirks: an Android AGENT card embedded in another no longer replaces its owner; a card
+  without `END:VCARD` (a file cut off) is kept with a warning; a NUL no longer cuts a name short;
+  Apple and vCard 4 group cards are skipped instead of becoming empty contacts; every property
+  that isn't kept is listed in the dry run; base64-encoded names and vCard 4's preferred name
+  are read; social profile links are kept.
+- Outlook CSV keeps the Pager, ISDN, Callback, Radio, TTY/TDD and Assistant's phone columns.
+  Email values are cleaned up (`mailto:` dropped, several addresses in a cell split, Exchange
+  paths and other non-addresses left out). A nameless Telegram entry merges with the named card
+  that has its number, and a nameless card on a number several people share is not merged into
+  one of them. Refused files get a reason that fits: a chat export, damaged JSON, an unclosed
+  quote in a CSV, a binary file.

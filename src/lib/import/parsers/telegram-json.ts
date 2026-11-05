@@ -1,6 +1,6 @@
 import type { IncomingContact, ParseResult } from '../types';
 import { stripBom } from '../detect';
-import { clean, dedupePhones, defaultCountry, isoDate, joinName } from '../normalize';
+import { clean, dedupePhones, defaultCountry, isoDate, joinName, NO_NAME } from '../normalize';
 
 // Telegram Desktop → Settings → Advanced → Export Telegram data, with
 // "Contacts" ticked and JSON as the format. Contacts carry a name and a phone.
@@ -23,7 +23,9 @@ export function parseTelegramJson(text: string): ParseResult {
       continue;
     }
     contacts.push({
-      name: name ?? phone!,
+      // An entry without a name stays nameless, so it can merge with the named card
+      // that has the same number.
+      name: name ?? NO_NAME,
       emails: [],
       phones: phone ? dedupePhones([phone], country) : [],
       org: null,

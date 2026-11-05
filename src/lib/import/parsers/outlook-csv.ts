@@ -8,6 +8,7 @@ const EMAIL_COLS = ['E-mail Address', 'E-mail 2 Address', 'E-mail 3 Address'];
 const PHONE_COLS = [
   'Mobile Phone', 'Primary Phone', 'Business Phone', 'Business Phone 2',
   'Home Phone', 'Home Phone 2', 'Other Phone', 'Car Phone', 'Company Main Phone',
+  'Pager', 'ISDN', 'Callback', 'Radio Phone', 'TTY/TDD Phone', "Assistant's Phone",
 ];
 const URL_COLS = ['Web Page', 'Personal Web Page', 'Business Web Page'];
 

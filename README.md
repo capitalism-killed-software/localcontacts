@@ -31,7 +31,7 @@ All people in these pictures are made up.
 
 | Source | File | Notes |
 |---|---|---|
-| Apple: iCloud, macOS Contacts, iPhone | `.vcf` | vCard 3.0, groups, photos skipped |
+| Apple: iCloud, macOS Contacts, iPhone | `.vcf` | vCard 3.0 with photos; Apple's group cards are skipped |
 | Google Contacts | `.vcf` or `.csv` | both CSV layouts, multi-value cells |
 | Proton Contacts | `.vcf` | vCard 4.0 |
 | Outlook, Microsoft 365, Outlook.com | `.csv` | all three email and every phone column |

@@ -138,8 +138,20 @@ function looksTabular(text: string): boolean {
   return records[1].length >= 2;
 }
 
+// Images, archives and spreadsheets: NUL bytes or many control characters near the start.
+export function looksBinary(text: string): boolean {
+  const head = text.slice(0, 4096);
+  if (head.includes('\u0000')) return true;
+  const controls = head.match(/[\u0001-\u0008\u000e-\u001f\u007f]/g)?.length ?? 0;
+  return controls > head.length * 0.05;
+}
+
+// "[1/2/24, 10:00:00] Alice: ..." (WhatsApp on iPhone) or "1/2/24, 10:00 - Alice: ..." (Android).
+const CHAT_LINE = /^\[?\d{1,4}[./-]\d{1,2}[./-]\d{1,4},? \d{1,2}:\d{2}/;
+
 // Decide the format from the content, never from the file extension.
 export function detect(text: string): Format {
+  if (looksBinary(text)) return 'unknown';
   const t = stripBom(text).trimStart();
   if (/^BEGIN:VCARD/i.test(t)) return 'vcard';
   if (t.startsWith('{') || t.startsWith('[')) {
@@ -165,11 +177,27 @@ export function detect(text: string): Format {
 export function unknownHint(text: string, filename: string): string {
   const t = stripBom(text).trimStart();
   const ext = (filename.match(/\.([a-z0-9]+)$/i)?.[1] ?? '').toLowerCase();
-  if (t.startsWith('{') || t.startsWith('[')) {
-    return 'looks like JSON but not a Telegram export (expected a contacts.list array). Only Telegram\'s result.json is supported as JSON.';
-  }
   if (ext === 'xlsx' || ext === 'xls' || ext === 'numbers') {
     return 'spreadsheets are not read directly. Save it as CSV first.';
+  }
+  if (looksBinary(text)) return 'not a contact export: this is a binary file (an image, an archive or a spreadsheet).';
+  if (CHAT_LINE.test(t)) {
+    return 'not a contact export. Chat exports (WhatsApp, Signal) contain messages, not contacts; export your phone\'s address book as vCard instead.';
+  }
+  if (t.startsWith('{') || t.startsWith('[')) {
+    try {
+      JSON.parse(t);
+    } catch {
+      return 'looks like JSON but is damaged or cut off; export it again.';
+    }
+    return 'looks like JSON but not a Telegram export (expected a contacts.list array). Only Telegram\'s result.json is supported as JSON.';
+  }
+  try {
+    parse(csvBody(t), { delimiter: csvDelimiter(t), relax_column_count: true });
+  } catch (err) {
+    if ((err as { code?: string }).code === 'CSV_QUOTE_NOT_CLOSED') {
+      return 'looks like a CSV, but a quoted cell is never closed (a " is missing); fix it in a spreadsheet and save again.';
+    }
   }
   if (ext === 'ldif') return 'LDIF is not supported. Export as vCard or CSV instead.';
   if (ext === 'txt' || ext === 'html') {
