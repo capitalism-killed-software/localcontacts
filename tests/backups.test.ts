@@ -161,4 +161,33 @@ describe('restoreBackup', () => {
     expect(lastImport()).toBeNull();
     expect(() => deleteBackup('../contacts.db')).toThrow(/not a backup/);
   });
+
+  it('offers no import to undo once a restore came after it', async () => {
+    const { lastImport, restoreBackup } = await import('../src/lib/backups');
+    createContact({ full_name: 'Someone Already Here' });
+    runImport([{ name: 'friends.csv', bytes: Buffer.from('Name,Email\nNew Person,new@example.com\n') }], { apply: true });
+    restoreBackup(lastImport()!.entry.name);
+    expect(names()).toEqual(['Someone Already Here']);
+    expect(lastImport()).toBeNull();
+  });
 });
+
+describe('describeBackup', () => {
+  it('says in plain words what each backup was taken before', async () => {
+    const { describeBackup } = await import('../src/lib/backups');
+    const entry = (reason: string | null, detail: string | null = null) => ({
+      name: 'contacts-20261104-180800.db',
+      size: 1,
+      at: '2026-11-04T18:08:00.000Z',
+      record: reason ? ({ reason, detail, at: '', cards: 1, appVersion: '1.1.0', after: null } as never) : null,
+    });
+    expect(describeBackup(entry('import', 'google.vcf, linkedin.csv'))).toBe('Before importing google.vcf, linkedin.csv');
+    expect(describeBackup(entry('merge'))).toBe('Before merging duplicates');
+    expect(describeBackup(entry('names'))).toBe('Before tidying names');
+    expect(describeBackup(entry('industries'))).toBe('Before filling in industries');
+    expect(describeBackup(entry('sample'))).toBe('Before removing the sample people');
+    expect(describeBackup(entry('restore', 'contacts-20250101-090000.db'))).toMatch(/^Before restoring the backup from .*2025/);
+    expect(describeBackup(entry(null))).toBe('Backup');
+  });
+});
+

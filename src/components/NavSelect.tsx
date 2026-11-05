@@ -13,7 +13,9 @@ export default function NavSelect({
   groups = [],
   className = '',
   ariaLabel,
+  placeholder,
 }: {
+  placeholder?: string; // shown while nothing is chosen (a menu rather than a choice)
   value: string;
   options?: NavOption[];
   groups?: NavGroup[];
@@ -35,6 +37,11 @@ export default function NavSelect({
         if (href && confirmLeave()) router.push(href, { scroll: false });
       }}
     >
+      {placeholder !== undefined && (
+        <option value="" disabled hidden>
+          {placeholder}
+        </option>
+      )}
       {options.map((o) => (
         <option key={o.value} value={o.value}>
           {o.label}

@@ -371,6 +371,10 @@ body {
   .groups-footer .btn {
     font-size: 11px;
   }
+  .groups-footer .more-select {
+    width: 62px;
+    margin-left: 8px;
+  }
   .group-header {
     margin: 31px 0 6px;
     padding-left: 20px;
@@ -811,6 +815,48 @@ body {
     background: #fff9dc;
     color: #5c4c00;
     font-size: 11px;
+  }
+  .backup-undo {
+    margin: 0 0 14px;
+    padding: 8px 10px;
+    border: 1px solid #d8d8d8;
+    border-radius: 6px;
+    background: #fafafa;
+  }
+  .backup-undo p {
+    margin: 0 0 8px;
+  }
+  .backup-list {
+    list-style: none;
+    margin: 0 0 10px;
+    padding: 0;
+  }
+  .backup-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    border-bottom: 1px dotted #d0d0d0;
+  }
+  .backup-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .backup-label {
+    overflow-wrap: anywhere;
+  }
+  .backup-actions {
+    display: flex;
+    flex: none;
+    gap: 6px;
+  }
+  .backup-actions form,
+  .backup-undo form,
+  .import-actions form {
+    margin: 0;
   }
   .import-sample {
     display: block;

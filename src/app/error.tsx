@@ -11,7 +11,8 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
         <p>
           The change may not have been saved. Your contacts are still in the database file (
           <code>data/contacts.db</code> unless <code>CONTACTS_DB_PATH</code> names another), and every import that changes
-          something leaves a copy in the <code>backups</code> folder next to it.
+          something leaves a copy in the <code>backups</code> folder next to it, which <strong>More → Backups…</strong>{' '}
+          can restore.
         </p>
         {error.digest && <p className="drop-sub">Reference for the terminal log: {error.digest}</p>}
         <p className="import-actions">

@@ -15,6 +15,9 @@ import {
 import { VIEW_SORTS, parseBook } from '@/lib/context';
 import { buildGroups, type ContextOverride } from '@/lib/groups';
 import { sampleCount } from '@/lib/sample';
+import { backupsDir, describeBackup, formatWhen, lastImport, listBackups } from '@/lib/backups';
+import { fileSize } from '@/lib/format';
+import type { BackupRow, UndoImport } from '@/components/BackupsPanel';
 import { bookHref, contextQs } from '@/lib/urls';
 
 export const dynamic = 'force-dynamic';
@@ -35,6 +38,7 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
   const qs = contextQs(context);
   const selId = isNew || sheet ? null : id;
   const importHref = bookHref(qs, { sheet: 'import' });
+  const backupsHref = bookHref(qs, { sheet: 'backups' });
   const hrefWith = (over: ContextOverride & { sort?: string }) =>
     bookHref(contextQs({ ...context, ...over }), { id: selId });
 
@@ -57,9 +61,30 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
   const view = isNew || sheet || id || cardMode === 'welcome' ? 'card' : 'list';
   const samples = sampleCount();
 
+  // The backups sheet's list, read only when it is open.
+  let backups: { rows: BackupRow[]; undo: UndoImport | null; total: string; folder: string | null } | null = null;
+  if (sheet === 'backups') {
+    const list = listBackups();
+    const last = lastImport();
+    backups = {
+      rows: list.map((b) => ({ name: b.name, label: describeBackup(b), when: formatWhen(b.at), cards: b.record?.cards ?? null, size: fileSize(b.size) })),
+      undo: last && {
+        name: last.entry.name,
+        files: last.entry.record!.detail ?? 'files',
+        when: formatWhen(last.entry.at),
+        changedSince: last.changedSince,
+      },
+      total: fileSize(list.reduce((n, b) => n + b.size, 0)),
+      folder: backupsDir(),
+    };
+  }
+
   const activeGroupKey = groups.all.active
     ? groups.all.key
     : groups.sections.flatMap((s) => s.items).find((i) => i.active)?.key ?? groups.all.key;
+  // The other sheets, from the "More" menu under the groups (and, on a phone, the groups menu).
+  const sheetLinks = [{ value: 'backups', label: 'Backups…', href: backupsHref }];
+  const moreMenu = <NavSelect className="sort-select more-select" ariaLabel="More" placeholder="More" value="" options={sheetLinks} />;
   const groupsSelect = (
     <NavSelect
       className="groups-select"
@@ -68,6 +93,7 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
       options={[
         { value: groups.all.key, label: groups.all.label, href: hrefWith(groups.all.over) },
         { value: 'import', label: 'Import contacts…', href: importHref },
+        ...sheetLinks,
       ]}
       groups={groups.sections.map((s) => ({
         label: s.title,
@@ -87,7 +113,7 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
   return (
     <Book
       view={view}
-      groups={<GroupsPane all={groups.all} sections={groups.sections} hrefFor={(item) => hrefWith(item.over)} importHref={importHref} />}
+      groups={<GroupsPane all={groups.all} sections={groups.sections} hrefFor={(item) => hrefWith(item.over)} importHref={importHref} more={moreMenu} />}
       names={
         <NamesPane
           search={<SearchBar />}
@@ -102,8 +128,10 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
         <CardPane
           mode={cardMode}
           importHref={importHref}
+          backupsHref={backupsHref}
           sampleCount={samples}
           loadSample={loadSampleAction.bind(null, qs)}
+          backups={backups}
           contact={selected}
           listHref={bookHref(qs)}
           viewHref={bookHref(qs, { id })}

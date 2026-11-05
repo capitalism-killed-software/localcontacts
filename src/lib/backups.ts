@@ -33,6 +33,40 @@ const NAME = /^contacts-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})(?:[b-y]|z\d+
 /** Whether a name is one of ours (no paths, nothing else). */
 export const isBackupName = (name: string): boolean => NAME.test(name);
 
+/** When a backup was taken, read from its name (local time). */
+function dateFromName(name: string): Date | null {
+  const m = name.match(NAME);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) : null;
+}
+
+/** A date and time as the person reads it, in this computer's language. */
+export const formatWhen = (d: Date | string): string =>
+  new Date(d).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+
+/** What a backup was taken before, in plain words for the backups sheet. */
+export function describeBackup(entry: BackupEntry): string {
+  const r = entry.record;
+  if (!r) return 'Backup';
+  switch (r.reason) {
+    case 'import':
+      return r.detail ? `Before importing ${r.detail}` : 'Before an import';
+    case 'merge':
+      return 'Before merging duplicates';
+    case 'names':
+      return 'Before tidying names';
+    case 'industries':
+      return 'Before filling in industries';
+    case 'sample':
+      return 'Before removing the sample people';
+    case 'restore': {
+      const when = r.detail ? dateFromName(r.detail) : null;
+      return when ? `Before restoring the backup from ${formatWhen(when)}` : 'Before restoring a backup';
+    }
+    default:
+      return 'Backup';
+  }
+}
+
 /** The backups folder next to the database, or null for an in-memory database. */
 export function backupsDir(): string | null {
   const path = dbPath();
@@ -91,8 +125,7 @@ export function listBackups(): BackupEntry[] {
     if (!m) continue;
     const file = join(dir, name);
     const record = readRecord(file);
-    const fromName = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).toISOString();
-    out.push({ name, size: statSync(file).size, record, at: record?.at ?? fromName });
+    out.push({ name, size: statSync(file).size, record, at: record?.at ?? dateFromName(name)!.toISOString() });
   }
   // Newest first; within one second, the lettered names come after the plain one.
   return out.sort((a, b) => (a.at === b.at ? b.name.localeCompare(a.name) : b.at.localeCompare(a.at)));
@@ -208,9 +241,10 @@ export function deleteBackup(name: string): void {
 /**
  * The newest import that can be undone, and whether anything changed since it
  * (then undoing it also undoes those later changes, which are saved first).
+ * None once a restore came after it: the book was already put back.
  */
 export function lastImport(): { entry: BackupEntry; changedSince: boolean } | null {
-  const entry = listBackups().find((b) => b.record?.reason === 'import' && b.record.after);
-  if (!entry) return null;
+  const entry = listBackups().find((b) => b.record?.reason === 'import' || b.record?.reason === 'restore');
+  if (!entry || entry.record!.reason !== 'import' || !entry.record!.after) return null;
   return { entry, changedSince: listVersionOf(getDb()) !== entry.record!.after };
 }

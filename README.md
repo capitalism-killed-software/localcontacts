@@ -107,7 +107,9 @@ Options:
 ```
 
 Before writing, both the import page and `--apply` save a copy of the database to
-`data/backups/`. To undo an import, stop the app and copy that file over `data/contacts.db`.
+`data/backups/`, with a note of why it was taken. To undo an import, press **Undo this import**
+when it finishes, or open **More → Backups…**: it lists every backup, undoes the last import, and
+restores any backup after saving the book as it is.
 
 ## Using the book
 

@@ -49,3 +49,49 @@ test('the banner removes the sample people in one click and keeps your own cards
   await page.goto('/?import=1');
   await expect(page.getByLabel(/sample people first/)).toHaveCount(0);
 });
+
+test('an import can be undone straight away', async ({ page }) => {
+  await page.goto('/?import=1');
+  await page.locator('.drop-zone input[type=file]').setInputFiles([fixture('linkedin-Connections.csv')]);
+  await page.locator('.import-actions .btn-done').click();
+  await expect(page.locator('.import-done')).toContainText('Imported:');
+  await expect(count(page)).not.toHaveText(/^2 cards/);
+  await page.getByRole('button', { name: 'Undo this import' }).click();
+  await expect(page.locator('.import-done')).toContainText('Undone');
+  await expect(count(page)).toHaveText(/^2 cards/);
+  await expect(page.getByRole('button', { name: 'Undo this import' })).toHaveCount(0);
+});
+
+test('the backups sheet says why each backup was taken, and restores one after saving the book', async ({ page }) => {
+  await page.goto('/');
+  await page.getByLabel('More').selectOption({ label: 'Backups…' });
+  await expect(page).toHaveURL(/sheet=backups/);
+  const rows = page.locator('.backup-row');
+  await expect(rows.locator('.backup-label')).toHaveText([
+    /^Before restoring the backup from /,
+    'Before importing linkedin-Connections.csv',
+    'Before removing the sample people',
+    'Before importing apple-contacts.vcf',
+  ]);
+  // Undo was just used, so there is no import left to undo.
+  await expect(page.locator('.backup-undo')).toHaveCount(0);
+  page.once('dialog', (d) => d.accept());
+  await rows.filter({ hasText: 'Before removing the sample people' }).getByRole('button', { name: 'Restore' }).click();
+  await expect(page.locator('.backup-message')).toContainText('Restored');
+  await expect(count(page)).toHaveText(/^17 cards/);
+  await expect(page.locator('.sample-banner')).toBeVisible();
+  await expect(rows).toHaveCount(5);
+});
+
+test('a backup can be deleted, after asking', async ({ page }) => {
+  await page.goto('/?sheet=backups');
+  const rows = page.locator('.backup-row');
+  await expect(rows).toHaveCount(5);
+  page.once('dialog', (d) => d.dismiss());
+  await rows.last().getByRole('button', { name: 'Delete' }).click();
+  await expect(rows).toHaveCount(5);
+  page.once('dialog', (d) => d.accept());
+  await rows.last().getByRole('button', { name: 'Delete' }).click();
+  await expect(rows).toHaveCount(4);
+  await expect(page.locator('.backup-message')).toContainText('Deleted');
+});

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import type { GroupItem, GroupSection } from '@/lib/groups';
 
 // The Groups column: a Mac source list of links.
@@ -7,11 +8,13 @@ export default function GroupsPane({
   sections,
   hrefFor,
   importHref,
+  more,
 }: {
   all: GroupItem;
   sections: GroupSection[];
   hrefFor: (item: GroupItem) => string;
   importHref: string;
+  more: ReactNode;
 }) {
   const row = (item: GroupItem, bold = false) => (
     <Link
@@ -41,6 +44,7 @@ export default function GroupsPane({
         <Link href={importHref} scroll={false} prefetch={false} className="btn" title="Import contacts from files">
           Import…
         </Link>
+        {more}
       </div>
     </nav>
   );

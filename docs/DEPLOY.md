@@ -121,7 +121,14 @@ options if the server holds other sensitive things.
 Every import that adds or changes a card (from the import page or `npm run import -- --apply`),
 and every clean-up script run with `--apply`, first saves a consistent copy of the database to
 `data/backups/contacts-<date>-<time>.db`, in local time; a second backup in the same second gets
-a letter (`…-180800b.db`) so the names sort in order. Delete old ones whenever you like.
+a letter (`…-180800b.db`) so the names sort in order. Beside each one, a `.json` file of the same
+name records why it was taken (`import`, `merge`, `names`, `industries`, `sample` or `restore`),
+the files involved, and how many cards the book had.
+
+**More → Backups…** in the book lists them, restores any of them and deletes the ones you no
+longer want. A restore first saves the book as it is (as a `restore` backup), then puts the
+backup's cards back in one step on the running app, so nothing needs stopping and card numbers
+are never reused. Deleting the files by hand works too.
 
 Inside Docker the clock is UTC unless you give the container your time zone: uncomment the `TZ`
 line under `environment:` in `docker-compose.yml` (for example `- TZ=Europe/London`).
@@ -135,8 +142,10 @@ sqlite3 data/contacts.db ".backup backups/contacts-$(date +%F).db"
 ```
 
 With Docker, run the same inside the container
-(`docker compose exec localcontacts sqlite3 …`) or stop it first. Restoring is copying the
-file back.
+(`docker compose exec localcontacts sqlite3 …`) or stop it first. To restore one of your own
+copies, stop the app and copy the file back over `data/contacts.db`, or put it in
+`data/backups/` named like the others (`contacts-20261104-180800.db`) and restore it from the
+Backups sheet.
 
 ## 6. Install it as an app
 

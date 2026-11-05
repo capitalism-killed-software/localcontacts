@@ -1,10 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useActionState, useRef, useState } from 'react';
+import { backupAction, type BackupResult } from '@/app/actions';
 import { FIELD_LABELS, MAPPABLE, type FieldMap, type MappableField } from '@/lib/import/fields';
 import type { ImportReport } from '@/lib/import/run';
 import { normalizeTag, tagProblem } from '@/lib/import/tags';
+import { fileSize } from '@/lib/format';
 
 // The import sheet on the right page: choose or drop export files, see what
 // the importer makes of them (a dry run, nothing written), then import.
@@ -15,9 +17,16 @@ const keyOf = (f: File) => `${f.name}:${f.size}`;
 
 const contacts = (n: number) => `${n.toLocaleString()} contact${n === 1 ? '' : 's'}`;
 
-const kb = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
 
-export default function ImportPanel({ doneHref, sampleCount = 0 }: { doneHref: string; sampleCount?: number }) {
+export default function ImportPanel({
+  doneHref,
+  backupsHref,
+  sampleCount = 0,
+}: {
+  doneHref: string;
+  backupsHref: string;
+  sampleCount?: number;
+}) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -190,7 +199,7 @@ export default function ImportPanel({ doneHref, sampleCount = 0 }: { doneHref: s
                     ? `${r.label}, ${contacts(r.count ?? 0)}, tagged “${tag && !tagError ? normalizeTag(tag) : r.source}”`
                     : r?.headers?.length && /name column/.test(r.error ?? '')
                       ? 'No name column found. Choose which column holds the name, below.'
-                      : r?.error ?? kb(f.size)}
+                      : r?.error ?? fileSize(f.size)}
                 </span>
                 {phase !== 'done' && !busy && (
                   <button type="button" className="photo-remove" onClick={() => remove(i)} aria-label={`Remove ${f.name}`}>
@@ -272,36 +281,95 @@ export default function ImportPanel({ doneHref, sampleCount = 0 }: { doneHref: s
             {st!.inserted > 0 && st!.mergedIntoExisting > 0 ? ', ' : ''}
             {st!.mergedIntoExisting > 0 ? `update ${st!.mergedIntoExisting.toLocaleString()}` : ''}
           </button>
-          <span className="drop-sub">A copy of your database is saved first, in the backups folder next to it.</span>
+          <span className="drop-sub">
+            A copy of the book is saved first, in{' '}
+            <Link href={backupsHref} scroll={false} prefetch={false}>
+              Backups
+            </Link>
+            .
+          </span>
         </p>
       )}
 
       {phase === 'done' && report?.written && (
-        <div className="import-done">
-          <p className="import-status is-ok">
-            Imported: {report.written.inserted.toLocaleString()} new, {report.written.updated.toLocaleString()} updated.
-          </p>
-          {report.backup && <p className="drop-sub">Backup: {report.backup}</p>}
-          <p className="import-actions">
-            <Link href={doneHref} scroll={false} className="btn btn-done">
-              Done
-            </Link>
-            <button
-              type="button"
-              className="btn"
-              onClick={() => {
-                setFiles([]);
-                setMaps({});
-                setMapOpen({});
-                setReport(null);
-                setPhase('idle');
-              }}
-            >
-              Import more
-            </button>
-          </p>
-        </div>
+        <ImportDone
+          key={report.backup ?? 'no-backup'}
+          written={report.written}
+          backup={report.backup ?? null}
+          doneHref={doneHref}
+          backupsHref={backupsHref}
+          onMore={() => {
+            setFiles([]);
+            setMaps({});
+            setMapOpen({});
+            setReport(null);
+            setPhase('idle');
+          }}
+        />
       )}
+    </div>
+  );
+}
+
+// After an import: what was written, and "Undo this import", which puts back
+// the copy saved just before it (the backups sheet keeps that copy too).
+function ImportDone({
+  written,
+  backup,
+  doneHref,
+  backupsHref,
+  onMore,
+}: {
+  written: { inserted: number; updated: number };
+  backup: string | null;
+  doneHref: string;
+  backupsHref: string;
+  onMore: () => void;
+}) {
+  const [undone, undo, undoing] = useActionState<BackupResult, FormData>(backupAction, null);
+  const name = backup?.split(/[\\/]/).pop() ?? null;
+  return (
+    <div className="import-done">
+      {undone?.ok ? (
+        <p className="import-status is-ok" role="status">
+          {undone.message}
+        </p>
+      ) : (
+        <p className="import-status is-ok">
+          Imported: {written.inserted.toLocaleString()} new, {written.updated.toLocaleString()} updated.
+        </p>
+      )}
+      {undone && !undone.ok && (
+        <p className="import-status is-bad" role="alert">
+          {undone.message}
+        </p>
+      )}
+      {name && !undone?.ok && (
+        <p className="drop-sub">
+          The book as it was just before is saved in{' '}
+          <Link href={backupsHref} scroll={false} prefetch={false}>
+            Backups
+          </Link>
+          .
+        </p>
+      )}
+      <div className="import-actions">
+        <Link href={doneHref} scroll={false} className="btn btn-done">
+          Done
+        </Link>
+        {name && !undone?.ok && (
+          <form action={undo}>
+            <input type="hidden" name="op" value="undo" />
+            <input type="hidden" name="name" value={name} />
+            <button type="submit" className="btn" disabled={undoing}>
+              Undo this import
+            </button>
+          </form>
+        )}
+        <button type="button" className="btn" onClick={onMore}>
+          Import more
+        </button>
+      </div>
     </div>
   );
 }

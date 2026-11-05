@@ -4,6 +4,7 @@ import type { Sheet } from '@/lib/context';
 import CardEdit, { CARD_FORM_ID } from './CardEdit';
 import CardView from './CardView';
 import DeleteButton from './DeleteButton';
+import BackupsPanel, { type BackupRow, type UndoImport } from './BackupsPanel';
 import ImportPanel from './ImportPanel';
 import Silhouette from './Silhouette';
 
@@ -16,8 +17,10 @@ type Action = (fd: FormData) => void | Promise<void>;
 export default function CardPane({
   mode,
   importHref,
+  backupsHref,
   sampleCount,
   loadSample,
+  backups,
   contact,
   listHref,
   viewHref,
@@ -28,8 +31,10 @@ export default function CardPane({
 }: {
   mode: CardMode;
   importHref: string;
+  backupsHref: string;
   sampleCount: number;
   loadSample: Action;
+  backups: { rows: BackupRow[]; undo: UndoImport | null; total: string; folder: string | null } | null;
   contact: Contact | null;
   listHref: string;
   viewHref: string;
@@ -83,7 +88,15 @@ export default function CardPane({
       );
       break;
     case 'import':
-      body = <ImportPanel doneHref={listHref} sampleCount={sampleCount} />;
+      body = <ImportPanel doneHref={listHref} backupsHref={backupsHref} sampleCount={sampleCount} />;
+      footer = (
+        <Link href={listHref} scroll={false} prefetch={false} className="btn">
+          Close
+        </Link>
+      );
+      break;
+    case 'backups':
+      body = backups && <BackupsPanel {...backups} />;
       footer = (
         <Link href={listHref} scroll={false} prefetch={false} className="btn">
           Close

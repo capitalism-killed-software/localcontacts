@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createContact, updateContact, deleteContact, setPhoto, type ContactInput } from '@/lib/contacts';
 import { photoFromBytes } from '@/lib/photo';
 import { cleanIndustry, dedupeEmails, dedupePhones, defaultCountry } from '@/lib/import/normalize';
+import { deleteBackup, describeBackup, formatWhen, listBackups, restoreBackup } from '@/lib/backups';
 import { loadSamplePeople, removeSamplePeople } from '@/lib/sample';
 import { bookHref, contextQs } from '@/lib/urls';
 
@@ -101,4 +102,39 @@ export async function removeSampleAction(qs: string) {
   removeSamplePeople();
   revalidatePath('/');
   redirect(bookHref(safeQs(qs)));
+}
+
+// The backups sheet and the import's "Undo this import". The result is shown
+// in the sheet (a thrown error would only reach the error page, without its
+// message, in a production build).
+export type BackupResult = { ok: boolean; message: string } | null;
+
+export async function backupAction(_prev: BackupResult, fd: FormData): Promise<BackupResult> {
+  const op = fd.get('op');
+  const name = String(fd.get('name') ?? '');
+  const entry = listBackups().find((b) => b.name === name);
+  try {
+    if (op === 'restore' || op === 'undo') {
+      const { cards } = restoreBackup(name);
+      revalidatePath('/');
+      const n = `${cards.toLocaleString()} card${cards === 1 ? '' : 's'}`;
+      if (op === 'undo') {
+        const what = entry?.record?.detail ? `importing ${entry.record.detail}` : 'the import';
+        return { ok: true, message: `Undone. The book is back as it was before ${what} (${n}).` };
+      }
+      return {
+        ok: true,
+        message: `Restored the backup from ${entry ? formatWhen(entry.at) : name} (${n}). The book as it was just before is saved as the newest backup.`,
+      };
+    }
+    if (op === 'delete') {
+      deleteBackup(name);
+      revalidatePath('/');
+      return { ok: true, message: `Deleted the backup from ${entry ? formatWhen(entry.at) : name}.` };
+    }
+    return { ok: false, message: 'Nothing to do.' };
+  } catch (err) {
+    const label = entry ? describeBackup(entry).toLowerCase() : 'that backup';
+    return { ok: false, message: `Nothing was changed: ${(err as Error).message} (${label})` };
+  }
 }
