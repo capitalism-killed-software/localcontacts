@@ -60,7 +60,7 @@ function parseArgs(argv: string[]) {
       process.exit(0);
     } else if (a.startsWith('--source=')) {
       source = a.slice('--source='.length).trim() || null;
-      const problem = source ? tagProblem(source) : null;
+      const problem = source ? tagProblem(source, { typed: true }) : null;
       if (problem) fail(`--source=${source}: ${problem}`);
     } else if (a.startsWith('--map=')) {
       try {

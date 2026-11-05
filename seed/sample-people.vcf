@@ -1,0 +1,137 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Okonkwo;Maya;;;
+FN:Maya Okonkwo
+ORG:Riverside Dental Clinic
+TITLE:Dentist
+EMAIL;TYPE=INTERNET;TYPE=PREF:maya.okonkwo@example.com
+TEL;TYPE=CELL;TYPE=PREF:+1 303 555 0101
+NOTE:Moved her practice across town in the spring.
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Rivera;Sam;;;
+FN:Sam Rivera
+EMAIL;TYPE=INTERNET;TYPE=PREF:sam.rivera@example.org
+TEL;TYPE=CELL;TYPE=PREF:+1 303 555 0102
+NOTE:Lives two doors down and has the long ladder.
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Rivera;Sam;;;
+FN:Sam Rivera
+ORG:Northwind Bank
+TITLE:Mortgage Advisor
+EMAIL;TYPE=INTERNET;TYPE=PREF:s.rivera@example.com
+TEL;TYPE=CELL;TYPE=PREF:+1 303 555 0103
+NOTE:Helped with the refinance. Not the neighbour!
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:;;;;
+FN:jo.baker@example.com
+EMAIL;TYPE=INTERNET;TYPE=PREF:jo.baker@example.com
+NOTE:Signed up for the book club.
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Nair;Priya;;;
+FN:Priya Nair
+ORG:Blue Fern Software
+TITLE:Product Designer
+EMAIL;TYPE=INTERNET;TYPE=PREF:priya@example.net
+TEL;TYPE=CELL;TYPE=PREF:+44 20 7946 0101
+NOTE:Met at the design meetup in London.
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Ferreira;Tomás;;;
+FN:Tomás Ferreira
+ORG:Hillcrest School
+TITLE:Teacher
+EMAIL;TYPE=INTERNET;TYPE=PREF:tomas.ferreira@example.com
+TEL;TYPE=CELL;TYPE=PREF:+1 303 555 0104
+NOTE:Coaches the Saturday football team.
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Fischer;Lena;;;
+FN:Lena Fischer
+ORG:Oak & Iron Construction
+TITLE:Site Manager
+EMAIL;TYPE=INTERNET;TYPE=PREF:lena@example.com
+TEL;TYPE=CELL;TYPE=PREF:+1 303 555 0105
+NOTE:Recommended the roofer.
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Asante;Kwame;;;
+FN:Kwame Asante
+ORG:Lantern Coffee
+TITLE:Owner
+EMAIL;TYPE=INTERNET;TYPE=PREF:kwame@example.org
+TEL;TYPE=CELL;TYPE=PREF:+1 303 555 0106
+NOTE:Best flat white in town.
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Sato;Hana;;;
+FN:Hana Sato
+ORG:Willow Health
+TITLE:Physiotherapist
+EMAIL;TYPE=INTERNET;TYPE=PREF:hana.sato@example.com
+TEL;TYPE=CELL;TYPE=PREF:+1 303 555 0107
+NOTE:Knee exercises: twice a day.
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Grant;Oliver;;;
+FN:Oliver Grant
+EMAIL;TYPE=INTERNET;TYPE=PREF:oliver.grant@example.com
+TEL;TYPE=CELL;TYPE=PREF:+1 303 555 0108
+NOTE:Climbing partner on Thursdays.
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Tanaka;Aiko;;;
+FN:Aiko Tanaka
+ORG:Tanaka Legal LLP
+TITLE:Attorney
+EMAIL;TYPE=INTERNET;TYPE=PREF:aiko@example.net
+TEL;TYPE=CELL;TYPE=PREF:+1 303 555 0109
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Whitfield;Rose;;;
+FN:Rose Whitfield
+TEL;TYPE=CELL;TYPE=PREF:+1 303 555 0110
+NOTE:Gran. Birthday in May: call her!
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Morales;Diego;;;
+FN:Diego Morales
+ORG:Sunrise Realty
+TITLE:Realtor
+EMAIL;TYPE=INTERNET;TYPE=PREF:diego@example.com
+TEL;TYPE=CELL;TYPE=PREF:+1 303 555 0111
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Haddad;Fatima;;;
+FN:Fatima Haddad
+EMAIL;TYPE=INTERNET;TYPE=PREF:fatima.haddad@example.org
+NOTE:Runs the Tuesday storytime at the library.
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Park;Chris;;;
+FN:Chris Park
+ORG:Pixel & Pine Studio
+TITLE:Photographer
+EMAIL;TYPE=INTERNET;TYPE=PREF:chris.park@example.com
+EMAIL;TYPE=INTERNET:chris@example.net
+TEL;TYPE=CELL;TYPE=PREF:+1 303 555 0112
+URL:https://example.com/chrispark
+NOTE:Took the photos at the wedding.
+END:VCARD

@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   if (total > MAX_IMPORT_BYTES) return fail(413, TOO_LARGE_MESSAGE);
 
   const rawSource = String(form.get('source') ?? '').trim();
-  const tagError = rawSource ? tagProblem(rawSource) : null;
+  const tagError = rawSource ? tagProblem(rawSource, { typed: true }) : null;
   if (tagError) return fail(400, tagError);
   const files: ImportFile[] = [];
   for (const [i, f] of uploads.entries()) {
@@ -49,6 +49,6 @@ export async function POST(req: Request) {
     }
     files.push({ name: f.name || 'upload', bytes: new Uint8Array(await f.arrayBuffer()), source: rawSource ? normalizeTag(rawSource) : null, map });
   }
-  const report = runImport(files, { apply: form.get('apply') === '1' });
+  const report = runImport(files, { apply: form.get('apply') === '1', removeSample: form.get('removeSample') === '1' });
   return Response.json(report, { headers: { 'Cache-Control': 'no-store' } });
 }

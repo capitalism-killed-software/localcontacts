@@ -39,7 +39,13 @@ export type ImportReport = {
   backup: string | null;
 };
 
-export type ImportOptions = { apply?: boolean; tagOnly?: boolean; backup?: boolean };
+// removeSample: delete the sample people (cards tagged only "sample") in the same
+// backed-up write, before the import's own changes.
+export type ImportOptions = { apply?: boolean; tagOnly?: boolean; backup?: boolean; removeSample?: boolean };
+
+// The tag of the made-up sample people (src/lib/sample.ts). Real contacts are
+// never merged into them.
+const SAMPLE_TAG = 'sample';
 
 function readFiles(files: ImportFile[]): { reports: FileReport[]; batches: Batch[] } {
   const reports: FileReport[] = [];
@@ -100,13 +106,20 @@ export function runImport(files: ImportFile[], opts: ImportOptions = {}): Import
        FROM contacts`
     )
     .all() as unknown as ExistingRow[];
-  const { rows, stats } = planMerge(existing, batches, { tagOnly: opts.tagOnly, country });
+  // Sample people are left out of matching, so a real "Sam Rivera" never merges
+  // into a made-up one (loading the sample itself still merges within it).
+  const allSample = batches.every((b) => b.source === SAMPLE_TAG);
+  const targets = allSample ? existing : existing.filter((r) => r.sources !== SAMPLE_TAG);
+  const { rows, stats } = planMerge(targets, batches, { tagOnly: opts.tagOnly, country });
+  const sampleCards = existing.length - targets.length;
   const report: ImportReport = {
-    ok: true, files: reports, stats, before, after: before + stats.inserted, country, applied: false, written: null, backup: null,
+    ok: true, files: reports, stats, before, after: before + stats.inserted - (opts.removeSample ? sampleCards : 0),
+    country, applied: false, written: null, backup: null,
   };
   if (!opts.apply) return report;
 
-  const changes = rows.some((r) => r.id === null || r.dirty);
+  const removeSample = !!opts.removeSample && sampleCards > 0;
+  const changes = removeSample || rows.some((r) => r.id === null || r.dirty);
   const detail = files.map((f) => f.name).join(', ');
   const { result, backup } = bulkWrite(
     'import',
@@ -129,6 +142,7 @@ export function runImport(files: ImportFile[], opts: ImportOptions = {}): Import
       const photo = tx.prepare(`UPDATE contacts SET photo = ?, photo_type = ? WHERE id = ?`);
       let inserted = 0;
       let updated = 0;
+      if (removeSample) tx.prepare('DELETE FROM contacts WHERE sources = ?').run(SAMPLE_TAG);
       for (const r of rows) {
         let id = r.id;
         if (id === null) {
