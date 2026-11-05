@@ -1,3 +1,4 @@
+import { listVersionOf } from './backups';
 import { fold } from './fold';
 import { getDb } from './db';
 import type { Photo, PhotoType } from './photo';
@@ -338,11 +339,7 @@ export function deleteContact(id: number): boolean {
 // Changes whenever a contact is added, removed or edited, so the names list
 // knows to fetch again after a save.
 export function listVersion(): string {
-  const db = getDb();
-  const row = db
-    .prepare(`SELECT COUNT(*) AS c, MAX(id) AS m, MAX(updated_at) AS u FROM contacts`)
-    .get() as { c: number; m: number | null; u: string | null };
-  return `${row.c}.${row.m ?? 0}.${row.u ?? ''}`;
+  return listVersionOf(getDb());
 }
 
 export function getPhoto(id: number): Photo | null {

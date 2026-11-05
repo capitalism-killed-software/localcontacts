@@ -56,7 +56,7 @@ describe('POST /api/import', () => {
     expect(r.applied).toBe(true);
     expect(r.written).toEqual({ inserted: 1, updated: 1 });
     expect(r.backup && existsSync(r.backup)).toBe(true);
-    expect(readdirSync(join(dir, 'backups')).length).toBe(2);
+    expect(readdirSync(join(dir, 'backups')).filter((f) => f.endsWith('.db')).length).toBe(2);
     expect(listContacts().find((c) => c.full_name === 'Ada Lovelace')!.sources).toBe('linkedin,phone');
   });
 
@@ -120,7 +120,7 @@ describe('backups', () => {
     try {
       await upload(['google-contacts.vcf'], { apply: '1' });
       await upload(['linkedin-Connections.csv'], { apply: '1' });
-      const names = readdirSync(join(dir, 'backups'));
+      const names = readdirSync(join(dir, 'backups')).filter((f) => f.endsWith('.db'));
       expect(names.sort()).toEqual(['contacts-20261104-180800.db', 'contacts-20261104-180800b.db']);
     } finally {
       vi.useRealTimers();

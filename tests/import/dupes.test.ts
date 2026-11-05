@@ -107,7 +107,7 @@ describe('npm run merge:dupes', { timeout: 60_000 }, () => {
     const r = run('--apply', '1:2', '1:3');
     expect(r.status).toBe(0);
     expect(r.out).toMatch(/Backup saved first: .*contacts-.*\.db/);
-    expect(readdirSync(join(workdir, 'backups'))).toHaveLength(1);
+    expect(readdirSync(join(workdir, 'backups')).filter((f) => f.endsWith('.db'))).toHaveLength(1);
     expect(rows()).toEqual([{
       id: 1, full_name: 'Keep Person', email: 'keep@example.com',
       alt_emails: 'drop@example.com\ndrop2@example.com\nthird@example.com', phone: '+1 202 555 0181',

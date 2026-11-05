@@ -70,7 +70,7 @@ describe('clean-up scripts', { timeout: 60_000 }, () => {
     const r = run('clean-names', '--apply');
     expect(r.status).toBe(0);
     expect(r.out).toMatch(/Backup saved first: .*contacts-.*\.db/);
-    expect(readdirSync(join(workdir, 'backups'))).toHaveLength(1);
+    expect(readdirSync(join(workdir, 'backups')).filter((f) => f.endsWith('.db'))).toHaveLength(1);
     expect(all().slice(0, 2)).toEqual([
       { full_name: 'Real Name', email: 'other@example.com', alt_emails: 'real@example.org', company: null, industry: null },
       { full_name: 'Ann', email: null, alt_emails: null, company: 'Acme', industry: null },

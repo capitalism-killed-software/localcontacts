@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync } from 'node:fs';
+import { bulkWrite } from '../backups';
 import { dbPath, getDb } from '../db';
 import { csvHeader, decodeFile, detect, unknownHint } from './detect';
 import { defaultSource, parseText } from './index';
@@ -73,26 +73,8 @@ function readFiles(files: ImportFile[]): { reports: FileReport[]; batches: Batch
   return { reports, batches };
 }
 
-// Local time, as the user reads it when picking a backup: 20261104-180800.
-const stamp = (d = new Date()) => {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
-};
-
-// A consistent copy of the database next to it, in data/backups/.
-export function backupDatabase(): string | null {
-  const path = dbPath();
-  if (path === ':memory:') return null;
-  const dir = join(dirname(path), 'backups');
-  mkdirSync(dir, { recursive: true });
-  const base = join(dir, `contacts-${stamp()}`);
-  // A second backup in the same second gets a letter (…-180800b.db), which sorts after the first.
-  const letters = 'bcdefghijklmnopqrstuvwxy';
-  let target = `${base}.db`;
-  for (let n = 0; existsSync(target); n++) target = `${base}${n < letters.length ? letters[n] : `z${n}`}.db`;
-  getDb().exec(`VACUUM INTO '${target.replace(/'/g, "''")}'`);
-  return target;
-}
+// Backups live in src/lib/backups.ts; re-exported for the scripts that import them from here.
+export { backupDatabase } from '../backups';
 
 export function runImport(files: ImportFile[], opts: ImportOptions = {}): ImportReport {
   const country = defaultCountry();
@@ -124,47 +106,47 @@ export function runImport(files: ImportFile[], opts: ImportOptions = {}): Import
   };
   if (!opts.apply) return report;
 
-  if (opts.backup !== false && rows.some((r) => r.id === null || r.dirty)) report.backup = backupDatabase();
-
-  const insert = db.prepare(`
-    INSERT INTO contacts (full_name, title, company, email, phone, alt_emails, alt_phones, urls,
-                          notes, connected_on, last_contacted, industry, sources)
-    VALUES (@full_name, @title, @company, @email, @phone, @alt_emails, @alt_phones, @urls,
-            @notes, @connected_on, @last_contacted, @industry, @sources)
-  `);
-  const update = db.prepare(`
-    UPDATE contacts SET
-      full_name = @full_name, title = @title, company = @company, email = @email, phone = @phone,
-      alt_emails = @alt_emails, alt_phones = @alt_phones, urls = @urls, notes = @notes,
-      connected_on = @connected_on, last_contacted = @last_contacted, industry = @industry, sources = @sources,
-      updated_at = datetime('now')
-    WHERE id = @id
-  `);
-  const photo = db.prepare(`UPDATE contacts SET photo = ?, photo_type = ? WHERE id = ?`);
-
-  let inserted = 0;
-  let updated = 0;
-  db.exec('BEGIN');
-  try {
-    for (const r of rows) {
-      let id = r.id;
-      if (id === null) {
-        id = Number(insert.run(recToColumns(r)).lastInsertRowid);
-        inserted++;
-      } else if (r.dirty) {
-        update.run({ id, ...recToColumns(r) });
-        updated++;
-      } else continue;
-      if (r.photo) photo.run(r.photo.data, r.photo.type, id);
-    }
-    db.exec('COMMIT');
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
-  }
-  if (dbPath() !== ':memory:') db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+  const changes = rows.some((r) => r.id === null || r.dirty);
+  const detail = files.map((f) => f.name).join(', ');
+  const { result, backup } = bulkWrite(
+    'import',
+    detail,
+    (tx) => {
+      const insert = tx.prepare(`
+        INSERT INTO contacts (full_name, title, company, email, phone, alt_emails, alt_phones, urls,
+                              notes, connected_on, last_contacted, industry, sources)
+        VALUES (@full_name, @title, @company, @email, @phone, @alt_emails, @alt_phones, @urls,
+                @notes, @connected_on, @last_contacted, @industry, @sources)
+      `);
+      const update = tx.prepare(`
+        UPDATE contacts SET
+          full_name = @full_name, title = @title, company = @company, email = @email, phone = @phone,
+          alt_emails = @alt_emails, alt_phones = @alt_phones, urls = @urls, notes = @notes,
+          connected_on = @connected_on, last_contacted = @last_contacted, industry = @industry, sources = @sources,
+          updated_at = datetime('now')
+        WHERE id = @id
+      `);
+      const photo = tx.prepare(`UPDATE contacts SET photo = ?, photo_type = ? WHERE id = ?`);
+      let inserted = 0;
+      let updated = 0;
+      for (const r of rows) {
+        let id = r.id;
+        if (id === null) {
+          id = Number(insert.run(recToColumns(r)).lastInsertRowid);
+          inserted++;
+        } else if (r.dirty) {
+          update.run({ id, ...recToColumns(r) });
+          updated++;
+        } else continue;
+        if (r.photo) photo.run(r.photo.data, r.photo.type, id);
+      }
+      return { inserted, updated };
+    },
+    { backup: opts.backup !== false && changes }
+  );
+  report.backup = backup;
+  report.written = result;
   report.applied = true;
-  report.written = { inserted, updated };
   report.after = count();
   return report;
 }
