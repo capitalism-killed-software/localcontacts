@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { FIELD_LABELS, MAPPABLE, type FieldMap, type MappableField } from '@/lib/import/fields';
 import type { ImportReport } from '@/lib/import/run';
+import { normalizeTag, tagProblem } from '@/lib/import/tags';
 
 // The import sheet on the right page: choose or drop export files, see what
 // the importer makes of them (a dry run, nothing written), then import.
@@ -11,6 +12,8 @@ import type { ImportReport } from '@/lib/import/run';
 type Phase = 'idle' | 'checking' | 'checked' | 'importing' | 'done' | 'error';
 
 const keyOf = (f: File) => `${f.name}:${f.size}`;
+
+const contacts = (n: number) => `${n.toLocaleString()} contact${n === 1 ? '' : 's'}`;
 
 const kb = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
 
@@ -91,7 +94,11 @@ export default function ImportPanel({ doneHref }: { doneHref: string }) {
 
   const st = report?.stats;
   const busy = phase === 'checking' || phase === 'importing';
-  const canImport = phase === 'checked' && report?.ok && st && (st.inserted > 0 || st.mergedIntoExisting > 0);
+  // The tag is checked here as it is typed (the server checks it again on Import);
+  // re-reading the files when the box lost focus swallowed the click on Import.
+  const tag = source.trim();
+  const tagError = tag ? tagProblem(tag) : null;
+  const canImport = phase === 'checked' && report?.ok && st && !tagError && (st.inserted > 0 || st.mergedIntoExisting > 0);
 
   return (
     <div className="card import-panel">
@@ -143,8 +150,9 @@ export default function ImportPanel({ doneHref }: { doneHref: string }) {
             placeholder="optional, e.g. work-phone (otherwise taken from each file)"
             value={source}
             onChange={(e) => setSource(e.target.value)}
-            onBlur={() => files.length && void send(files, false)}
+            aria-invalid={!!tagError}
           />
+          {tagError && <p className="import-status is-bad">{tagError}</p>}
         </div>
       )}
 
@@ -160,7 +168,7 @@ export default function ImportPanel({ doneHref }: { doneHref: string }) {
                 <span className="import-name">{f.name}</span>
                 <span className="import-meta">
                   {r?.ok
-                    ? `${r.label}, ${r.count} contacts, tagged “${r.source}”`
+                    ? `${r.label}, ${contacts(r.count ?? 0)}, tagged “${tag && !tagError ? normalizeTag(tag) : r.source}”`
                     : r?.headers?.length && /name column/.test(r.error ?? '')
                       ? 'No name column found. Choose which column holds the name, below.'
                       : r?.error ?? kb(f.size)}
@@ -226,6 +234,8 @@ export default function ImportPanel({ doneHref }: { doneHref: string }) {
           <div className="field-group">
             <Row label="new" value={st.inserted} />
             <Row label="merged" value={st.mergedIntoExisting} />
+            {st.mergedWithinImport > 0 && <Row label="in files" value={`${st.mergedWithinImport.toLocaleString()} merged with another card in the files`} />}
+            {st.unchanged > 0 && <Row label="already here" value={st.unchanged} />}
             <Row label="emails" value={`${st.addedEmails} added`} />
             <Row label="phones" value={`${st.addedPhones} added`} />
             <Row label="photos" value={`${st.addedPhotos} added`} />
@@ -243,14 +253,14 @@ export default function ImportPanel({ doneHref }: { doneHref: string }) {
             {st!.inserted > 0 && st!.mergedIntoExisting > 0 ? ', ' : ''}
             {st!.mergedIntoExisting > 0 ? `update ${st!.mergedIntoExisting.toLocaleString()}` : ''}
           </button>
-          <span className="drop-sub">A copy of your database is saved to data/backups first.</span>
+          <span className="drop-sub">A copy of your database is saved first, in the backups folder next to it.</span>
         </p>
       )}
 
       {phase === 'done' && report?.written && (
         <div className="import-done">
           <p className="import-status is-ok">
-            Imported: {report.written.inserted} new, {report.written.updated} updated.
+            Imported: {report.written.inserted.toLocaleString()} new, {report.written.updated.toLocaleString()} updated.
           </p>
           {report.backup && <p className="drop-sub">Backup: {report.backup}</p>}
           <p className="import-actions">

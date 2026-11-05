@@ -27,15 +27,22 @@
  * else the normalised full name. Matches fill empty fields and add further emails,
  * phones and links; nothing already stored is overwritten.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { parseFieldMap, type FieldMap } from '../src/lib/import';
+import { isCountry } from '../src/lib/import/normalize';
 import { runImport, type ImportFile } from '../src/lib/import/run';
+import { tagProblem } from '../src/lib/import/tags';
 
 type FileArg = { path: string; source: string | null; map: FieldMap | null };
 
 const USAGE =
   'Usage: npm run import -- [--apply] [--source=<tag>] [--map=<spec>] [--country=<CC>] [--tag-only] [--no-backup] <file> ...';
+
+function fail(message: string): never {
+  console.error(`${message}\n${USAGE}`);
+  process.exit(1);
+}
 
 function parseArgs(argv: string[]) {
   let apply = false;
@@ -51,12 +58,22 @@ function parseArgs(argv: string[]) {
     else if (a === '--help' || a === '-h') {
       console.log(USAGE);
       process.exit(0);
-    } else if (a.startsWith('--source=')) source = a.slice('--source='.length).trim() || null;
-    else if (a.startsWith('--map=')) map = parseFieldMap(a.slice('--map='.length));
-    else if (a.startsWith('--country=')) process.env.CONTACTS_DEFAULT_COUNTRY = a.slice('--country='.length);
-    else if (a.startsWith('--')) {
-      console.error(`Unknown option ${a}\n${USAGE}`);
-      process.exit(1);
+    } else if (a.startsWith('--source=')) {
+      source = a.slice('--source='.length).trim() || null;
+      const problem = source ? tagProblem(source) : null;
+      if (problem) fail(`--source=${source}: ${problem}`);
+    } else if (a.startsWith('--map=')) {
+      try {
+        map = parseFieldMap(a.slice('--map='.length));
+      } catch (err) {
+        fail((err as Error).message);
+      }
+    } else if (a.startsWith('--country=')) {
+      const cc = a.slice('--country='.length).trim().toUpperCase();
+      if (!isCountry(cc)) fail(`--country=${cc}: not a two-letter country code the phone rules know (e.g. US, GB, DE, IN).`);
+      process.env.CONTACTS_DEFAULT_COUNTRY = cc;
+    } else if (a.startsWith('--')) {
+      fail(`Unknown option ${a}`);
     } else files.push({ path: resolve(a.replace(/^~(?=[/\\]|$)/, process.env.HOME ?? process.env.USERPROFILE ?? '~')), source, map });
   }
   if (files.length === 0) {
@@ -71,8 +88,9 @@ function main() {
 
   const inputs: ImportFile[] = [];
   for (const f of files) {
-    if (!existsSync(f.path)) {
-      console.error(`✗ ${basename(f.path)}: file not found (${f.path})`);
+    const problem = !existsSync(f.path) ? 'file not found' : statSync(f.path).isDirectory() ? 'is a folder; name the export files inside it' : null;
+    if (problem) {
+      console.error(`✗ ${basename(f.path)}: ${problem} (${f.path})`);
       console.error('\nNothing was written. Fix the files above and re-run.');
       process.exit(1);
     }
@@ -82,7 +100,7 @@ function main() {
   const r = runImport(inputs, { apply, tagOnly, backup });
   for (const f of r.files) {
     if (f.ok) {
-      console.log(`✓ ${f.name}: ${f.label}, ${f.count} contacts, tagged "${f.source}"`);
+      console.log(`✓ ${f.name}: ${f.label}, ${f.count!.toLocaleString()} contact${f.count === 1 ? '' : 's'}, tagged "${f.source}"`);
       for (const w of f.warnings) console.log(`    note: ${w}`);
     } else console.error(`✗ ${f.name}: ${f.error}`);
   }
@@ -97,6 +115,7 @@ function main() {
   console.log('New contacts           :', st.inserted);
   console.log('Merged into existing   :', st.mergedIntoExisting);
   console.log('Merged within files    :', st.mergedWithinImport);
+  console.log('Already there, no news :', st.unchanged);
   if (tagOnly) console.log('Skipped (tag-only)     :', st.skippedUnmatched);
   console.log('Emails added           :', st.addedEmails, `(${st.filledEmail} contacts gained their first)`);
   console.log('Phones added           :', st.addedPhones, `(${st.filledPhone} contacts gained their first)`);

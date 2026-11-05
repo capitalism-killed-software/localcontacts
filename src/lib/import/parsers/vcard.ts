@@ -1,6 +1,6 @@
 import type { IncomingContact, ParseResult } from '../types';
 import { stripBom } from '../detect';
-import { clean, dedupeEmails, dedupePhones, dedupeStrings, defaultCountry, isoDate, NO_NAME } from '../normalize';
+import { clean, cleanIndustry, dedupeEmails, dedupePhones, dedupeStrings, defaultCountry, isoDate, NO_NAME } from '../normalize';
 import { photoFromBase64, photoFromDataUri, type Photo, type PhotoResult } from '../../photo';
 import { isTag } from '../tags';
 
@@ -389,7 +389,7 @@ export function parseVcard(text: string): ParseResult {
         card.nameless = /^true$/i.test(v.trim());
         break;
       case 'X-LOCALCONTACTS-INDUSTRY':
-        card.industry = clean(unescapeText(v));
+        card.industry = cleanIndustry(unescapeText(v));
         break;
       case 'URL': {
         const u = clean(v);

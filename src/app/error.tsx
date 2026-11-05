@@ -9,8 +9,9 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
       <div className="help-sheet error-sheet" role="alert">
         <h1 className="card-name">Something went wrong</h1>
         <p>
-          The change may not have been saved. Your contacts are still in <code>data/contacts.db</code>, and every import
-          leaves a copy in <code>data/backups/</code>.
+          The change may not have been saved. Your contacts are still in the database file (
+          <code>data/contacts.db</code> unless <code>CONTACTS_DB_PATH</code> names another), and every import that changes
+          something leaves a copy in the <code>backups</code> folder next to it.
         </p>
         {error.digest && <p className="drop-sub">Reference for the terminal log: {error.digest}</p>}
         <p className="import-actions">

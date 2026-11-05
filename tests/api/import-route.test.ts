@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -110,5 +110,20 @@ describe('POST /api/import refusals', () => {
     const res = await POST(new Request('http://localhost:3000/api/import', { method: 'POST', body: form, headers: { host: 'localhost:3000', origin: 'http://localhost:3000' } }));
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe('empty.vcf is empty.');
+  });
+});
+
+describe('backups', () => {
+  it('are named in local time, and a second one in the same second sorts after the first', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 10, 4, 18, 8, 0));
+    try {
+      await upload(['google-contacts.vcf'], { apply: '1' });
+      await upload(['linkedin-Connections.csv'], { apply: '1' });
+      const names = readdirSync(join(dir, 'backups'));
+      expect(names.sort()).toEqual(['contacts-20261104-180800.db', 'contacts-20261104-180800b.db']);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -5,6 +5,7 @@ import { csvHeader, decodeFile, detect, unknownHint } from './detect';
 import { defaultSource, parseText } from './index';
 import { planMerge, recToColumns, type Batch, type ExistingRow, type MergeStats } from './merge';
 import { defaultCountry } from './normalize';
+import { normalizeTag } from './tags';
 import type { FieldMap } from './fields';
 import { FORMAT_LABELS, type Format } from './types';
 
@@ -53,7 +54,7 @@ function readFiles(files: ImportFile[]): { reports: FileReport[]; batches: Batch
     const headers = format === 'generic-csv' ? csvHeader(text).filter(Boolean) : undefined;
     try {
       const res = parseText(text, format, { map: f.map ?? undefined });
-      const source = f.source || defaultSource(format, res.sourceHint);
+      const source = f.source ? normalizeTag(f.source) : defaultSource(format, res.sourceHint);
       batches.push({ source, contacts: res.contacts, explicit: !!f.source });
       reports.push({
         name: f.name,
@@ -72,7 +73,11 @@ function readFiles(files: ImportFile[]): { reports: FileReport[]; batches: Batch
   return { reports, batches };
 }
 
-const stamp = () => new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+// Local time, as the user reads it when picking a backup: 20261104-180800.
+const stamp = (d = new Date()) => {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+};
 
 // A consistent copy of the database next to it, in data/backups/.
 export function backupDatabase(): string | null {
@@ -81,8 +86,10 @@ export function backupDatabase(): string | null {
   const dir = join(dirname(path), 'backups');
   mkdirSync(dir, { recursive: true });
   const base = join(dir, `contacts-${stamp()}`);
+  // A second backup in the same second gets a letter (…-180800b.db), which sorts after the first.
+  const letters = 'bcdefghijklmnopqrstuvwxy';
   let target = `${base}.db`;
-  for (let n = 2; existsSync(target); n++) target = `${base}-${n}.db`;
+  for (let n = 0; existsSync(target); n++) target = `${base}${n < letters.length ? letters[n] : `z${n}`}.db`;
   getDb().exec(`VACUUM INTO '${target.replace(/'/g, "''")}'`);
   return target;
 }
@@ -95,6 +102,12 @@ export function runImport(files: ImportFile[], opts: ImportOptions = {}): Import
   };
   if (files.length === 0 || reports.some((r) => !r.ok)) return empty;
 
+  // A dry run against a database that doesn't exist yet doesn't create it.
+  const path = dbPath();
+  if (!opts.apply && path !== ':memory:' && !existsSync(path)) {
+    const { stats } = planMerge([], batches, { tagOnly: opts.tagOnly, country });
+    return { ...empty, ok: true, stats, after: stats.inserted };
+  }
   const db = getDb();
   const count = () => (db.prepare('SELECT COUNT(*) AS c FROM contacts').get() as { c: number }).c;
   const before = count();

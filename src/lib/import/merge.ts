@@ -61,6 +61,7 @@ export type MergeStats = {
   addedPhones: number;
   addedPhotos: number;
   skippedUnmatched: number;
+  unchanged: number; // matched a card that already had everything
 };
 
 export function rowToRec(r: ExistingRow): Rec {
@@ -226,7 +227,7 @@ function mergeInto(t: Rec, inc: Rec, stats: MergeStats, country: CountryCode, by
 
 const emptyStats = (): MergeStats => ({
   incoming: 0, inserted: 0, mergedIntoExisting: 0, mergedWithinImport: 0,
-  filledEmail: 0, filledPhone: 0, addedEmails: 0, addedPhones: 0, addedPhotos: 0, skippedUnmatched: 0,
+  filledEmail: 0, filledPhone: 0, addedEmails: 0, addedPhones: 0, addedPhotos: 0, skippedUnmatched: 0, unchanged: 0,
 });
 
 /** Merges `other` into `target` the way an import does; true when `target` changed. */
@@ -333,6 +334,8 @@ export function planMerge(
             stats.mergedWithinImport++;
           }
           index(target); // it may have gained keys
+        } else {
+          stats.unchanged++;
         }
       } else if (tagOnly) {
         stats.skippedUnmatched++;

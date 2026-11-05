@@ -58,7 +58,8 @@ describe('import CLI', () => {
     expect(r.out).toMatch(/vCard, 2 contacts, tagged "vcard"/);
     expect(r.out).toMatch(/New contacts\s+: 2/);
     expect(r.out).toMatch(/Dry run: nothing written/);
-    expect(count()).toBe(0);
+    // Not even an empty database file is created.
+    expect(existsSync(dbPath)).toBe(false);
   });
 
   it('writes with --apply, merges across formats, and is idempotent', () => {
@@ -116,5 +117,34 @@ describe('import CLI', () => {
     const r = run('--map=nickname=Foo', fixturePath('generic-crm.csv'));
     expect(r.status).toBe(1);
     expect(r.out).toMatch(/unknown field/);
+  });
+});
+
+describe('import CLI mistakes', () => {
+  it('refuses bad tags, countries and maps, and folders, with a message instead of a stack trace', () => {
+    for (const [args, message] of [
+      [['--source=Work Friends'], /may only use letters/],
+      [['--source=clients,2024'], /may only use letters/],
+      [['--source=untagged'], /built-in group/],
+      [['--country=XX'], /--country=XX: not a two-letter country code/],
+      [['--map=bad'], /bad --map entry "bad"/],
+      [['--map=fullname=Name'], /unknown field "fullname"/],
+    ] as const) {
+      const r = run(...args, fixturePath('generic-crm.csv'));
+      expect(r.status, args.join(' ')).toBe(1);
+      expect(r.out, args.join(' ')).toMatch(message);
+      expect(r.out, args.join(' ')).not.toMatch(/\n\s+at /);
+    }
+    const folder = run(join(ROOT, 'tests', 'fixtures'));
+    expect(folder.status).toBe(1);
+    expect(folder.out).toMatch(/is a folder/);
+  });
+
+  it('stores tags in lower case and counts matches that bring nothing new', () => {
+    expect(run('--apply', '--source=Work', fixturePath('google-contacts.vcf')).status).toBe(0);
+    expect(query<{ sources: string }>('SELECT DISTINCT sources FROM contacts')).toEqual([{ sources: 'work' }]);
+    const again = run('--source=work', fixturePath('google-contacts.vcf'));
+    expect(again.out).toMatch(/Already there, no news : 2/);
+    expect(again.out).toMatch(/vCard, 2 contacts/);
   });
 });

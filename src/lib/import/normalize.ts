@@ -1,4 +1,4 @@
-import { parsePhoneNumberFromString, type CountryCode } from 'libphonenumber-js';
+import { isSupportedCountry, parsePhoneNumberFromString, type CountryCode } from 'libphonenumber-js';
 
 // Line breaks are stored as \n whatever the file used (Windows \r\n, old Mac \r),
 // so a note reads the same after an export and an import.
@@ -14,8 +14,11 @@ export const clean = (v: string | null | undefined): string | null => {
 // Country assumed for phone numbers written without a + prefix.
 export function defaultCountry(): CountryCode {
   const v = (process.env.CONTACTS_DEFAULT_COUNTRY ?? 'US').trim().toUpperCase();
-  return (/^[A-Z]{2}$/.test(v) ? v : 'US') as CountryCode;
+  return isCountry(v) ? v : 'US';
 }
+
+/** A two-letter country code the phone library knows (US, GB, DE, ...). */
+export const isCountry = (v: string): v is CountryCode => /^[A-Z]{2}$/.test(v) && isSupportedCountry(v);
 
 export function emailKey(email: string | null | undefined): string | null {
   const t = clean(email)?.toLowerCase() ?? null;
@@ -101,6 +104,12 @@ export function isoDate(v: string | null | undefined): string | null {
   if (!mm) return s;
   return `${m[3]}-${mm}-${m[1].padStart(2, '0')}`;
 }
+
+// An industry named like the built-in "unclassified" group means no industry.
+export const cleanIndustry = (v: string | null | undefined): string | null => {
+  const t = clean(v);
+  return t && !['none', 'all', 'unclassified'].includes(t.toLowerCase()) ? t : null;
+};
 
 export const splitLines = (v: string | null | undefined): string[] =>
   v ? v.split('\n').map((s) => s.trim()).filter(Boolean) : [];

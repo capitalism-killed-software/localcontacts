@@ -101,3 +101,18 @@ describe('refusal reasons', () => {
     expect(unknownHint(png, 'photo.csv')).toMatch(/binary file/);
   });
 });
+
+describe('names the book reserves', () => {
+  it('refuses tags that are built-in groups and treats a "none" industry as none', async () => {
+    const { tagProblem, normalizeTag } = await import('../../src/lib/import/tags');
+    const { cleanIndustry, isCountry } = await import('../../src/lib/import/normalize');
+    expect(tagProblem('untagged')).toMatch(/built-in group/);
+    expect(tagProblem('ALL')).toMatch(/built-in group/);
+    expect(tagProblem('work_friends')).toBeNull();
+    expect(normalizeTag(' Work ')).toBe('work');
+    expect(cleanIndustry('None')).toBeNull();
+    expect(cleanIndustry('Legal')).toBe('Legal');
+    expect(isCountry('GB')).toBe(true);
+    expect(isCountry('XX')).toBe(false);
+  });
+});

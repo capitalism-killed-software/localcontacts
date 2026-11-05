@@ -61,7 +61,12 @@ function main() {
   const label = format === 'vcard' ? 'vCard 3.0' : 'CSV';
   if (out) {
     if (existsSync(out) && !force) fail(`${out} exists; pass --force to overwrite it`);
-    writeFileSync(out, text, 'utf-8');
+    try {
+      writeFileSync(out, text, 'utf-8');
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      fail(code === 'ENOENT' ? `cannot write ${out}: its folder does not exist` : `cannot write ${out}: ${(err as Error).message}`);
+    }
     console.error(`Exported ${rows.length.toLocaleString()} cards (${label}) to ${out}`);
   } else {
     process.stdout.write(text);

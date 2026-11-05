@@ -1,7 +1,7 @@
 import { isWriteFromApp } from '@/lib/hosts';
 import { cleanFieldMap } from '@/lib/import/fields';
 import { MAX_IMPORT_BYTES, MAX_IMPORT_FILES, TOO_LARGE_MESSAGE } from '@/lib/import/limits';
-import { tagProblem } from '@/lib/import/tags';
+import { normalizeTag, tagProblem } from '@/lib/import/tags';
 import { runImport, type ImportFile } from '@/lib/import/run';
 
 export const dynamic = 'force-dynamic';
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
         return fail(400, `The column choices for ${f.name} could not be read.`);
       }
     }
-    files.push({ name: f.name || 'upload', bytes: new Uint8Array(await f.arrayBuffer()), source: rawSource || null, map });
+    files.push({ name: f.name || 'upload', bytes: new Uint8Array(await f.arrayBuffer()), source: rawSource ? normalizeTag(rawSource) : null, map });
   }
   const report = runImport(files, { apply: form.get('apply') === '1' });
   return Response.json(report, { headers: { 'Cache-Control': 'no-store' } });

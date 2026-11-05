@@ -1,5 +1,5 @@
 import type { IncomingContact, ParseResult } from '../types';
-import { clean, dedupeEmails, dedupePhones, dedupeStrings, defaultCountry, isoDate, joinName, NO_NAME } from '../normalize';
+import { clean, cleanIndustry, dedupeEmails, dedupePhones, dedupeStrings, defaultCountry, isoDate, joinName, NO_NAME } from '../normalize';
 import { headersOf, readCsv, type Row } from './csv';
 import { isTag } from '../tags';
 
@@ -113,7 +113,7 @@ export function parseGenericCsv(text: string, map: FieldMap = {}): ParseResult {
       urls: dedupeStrings(values(r, cols.url)),
       connected_on: isoDate(values(r, cols.connected_on)[0]),
       last_contacted: isoDate(values(r, cols.last_contacted)[0]),
-      industry: values(r, cols.industry)[0] ?? null,
+      industry: cleanIndustry(values(r, cols.industry)[0]),
       uid,
       sources: own ? (clean(r[sourcesCol!]) ?? '').split(',').map((s) => s.trim()).filter(isTag) : undefined,
     });

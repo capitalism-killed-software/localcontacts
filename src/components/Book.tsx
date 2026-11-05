@@ -1,5 +1,15 @@
 import type { ReactNode } from 'react';
 import GroupsToggle from './GroupsToggle';
+import { relative, isAbsolute } from 'node:path';
+import { dbPath } from '@/lib/db';
+
+// Where the database is, as the footer shows it: relative to the app when it is inside it.
+function databaseLabel(): string {
+  const path = dbPath();
+  if (path === ':memory:') return 'memory';
+  const rel = relative(process.cwd(), path);
+  return rel && !rel.startsWith('..') && !isAbsolute(rel) ? rel.split('\\').join('/') : path;
+}
 
 // The leather book: two pages, the groups and names on the left, the card
 // on the right. `view` drives the phone layout, where only one page shows.
@@ -38,7 +48,7 @@ export default function Book({
         </div>
       </div>
       <p className="desk-caption">
-        Local only · SQLite at <code>data/contacts.db</code>
+        Local only · SQLite at <code>{databaseLabel()}</code>
       </p>
     </div>
   );

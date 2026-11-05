@@ -80,3 +80,12 @@ The first public release.
   that has its number, and a nameless card on a number several people share is not merged into
   one of them. Refused files get a reason that fits: a chat export, damaged JSON, an unclosed
   quote in a CSV, a binary file.
+- Command line and import page: source tags follow one rule everywhere (the command line used
+  to store spaces, commas and anything else), are stored in lower case so "Work" and "work" are
+  one group, and can't be `all` or `untagged`; an industry of "none" means none. `--country`
+  must be a real country code. A folder passed as a file, a bad `--map`, or `--out` in a missing
+  folder get a message instead of a stack trace. The summary counts matches that bring nothing
+  new, and the import page shows merges within the files. Typing a tag no longer swallows the
+  first click on Import. Backups are named in local time, a second one in the same second sorts
+  after the first, a dry run no longer creates an empty database file, and the pages show where
+  the database really is.

@@ -138,4 +138,13 @@ describe('export CLI', () => {
       expect(strip(snapshot(db2)), format).toEqual(strip(before));
     }
   });
+
+  it('says so when --out names a folder that does not exist', () => {
+    const db = join(dir, 'one.db');
+    expect(run('scripts/import.ts', db, ['--apply', FIXTURES[0]]).status).toBe(0);
+    const r = run('scripts/export.ts', db, ['--format=vcard', `--out=${join(dir, 'missing', 'x.vcf')}`]);
+    expect(r.status).toBe(1);
+    expect(r.err).toMatch(/its folder does not exist/);
+    expect(r.err).not.toMatch(/\n\s+at /);
+  });
 });
