@@ -5,7 +5,9 @@
 // on every network address would let anyone on the same network open the book.
 // PORT works as usual (default 3000); an explicit -H/--hostname wins.
 import { createRequire } from 'node:module';
-import { pathToFileURL } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { needsBuild } from './app/prepare.mjs';
 
 export const DEFAULT_LISTEN = '127.0.0.1';
 
@@ -16,7 +18,16 @@ export function startArgs(args = [], env = process.env) {
   return ['start', ...args, '-H', env.CONTACTS_LISTEN?.trim() || DEFAULT_LISTEN];
 }
 
+/** A warning when the code is newer than the last build (after a `git pull`), or null. */
+export function staleBuildWarning(root) {
+  return needsBuild(root)
+    ? 'localcontacts: the code has changed since the last build. Run `npm run build` first, or this starts the old version.'
+    : null;
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const warning = staleBuildWarning(resolve(dirname(fileURLToPath(import.meta.url)), '..'));
+  if (warning) console.warn(warning);
   const next = createRequire(import.meta.url).resolve('next/dist/bin/next');
   process.argv = [process.argv[0], next, ...startArgs(process.argv.slice(2))];
   await import(pathToFileURL(next).href);

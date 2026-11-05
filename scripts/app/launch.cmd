@@ -4,8 +4,8 @@ rem For a Start Menu icon, use Edge or Chrome's "Install app" once the page is o
 setlocal
 cd /d "%~dp0..\.."
 where node >nul 2>nul || (echo Node.js 22.13 or newer is required: https://nodejs.org & exit /b 1)
-if not exist node_modules call npm install --no-audit --no-fund
-if not exist .next\BUILD_ID call npm run build
+rem Installs and builds on first run and after an update.
+node scripts\app\prepare.mjs || exit /b 1
 if "%PORT%"=="" set PORT=3000
 set NEXT_TELEMETRY_DISABLED=1
 set URL=http://localhost:%PORT%
