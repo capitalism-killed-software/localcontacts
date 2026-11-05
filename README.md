@@ -151,11 +151,12 @@ home server.
 
 ## Cleanup scripts
 
-All three are dry-run by default; add `--apply` to write.
+All three are dry-run by default; add `--apply` to write. To merge three cards into one, name the
+kept card in each pair (`12:34 12:35`); chains like `12:34 34:56` are refused.
 
 ```bash
 npm run clean:names       [-- --apply]           # tidy names that are really email addresses
-npm run merge:dupes -- 12:34 56:78 [--apply]     # merge explicit keepId:dropId pairs, losslessly
+npm run merge:dupes -- 12:34 12:35 [--apply]     # merge explicit keepId:dropId pairs, losslessly
 npm run classify:industry [-- --apply]           # keyword rules over company + title; fills blanks only
 ```
 

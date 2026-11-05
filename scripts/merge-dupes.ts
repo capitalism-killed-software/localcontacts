@@ -1,145 +1,122 @@
 /**
- * Merge explicit duplicate contact rows (keep <- drop). Gaps on the kept row are
- * filled from the dropped row; any conflicting value that can't fit a
- * single-value field (a second email, alternate company, etc.) is appended to
- * the kept row's Notes so nothing is lost. The dropped row is then deleted.
+ * Merge explicit duplicate contact rows (keep <- drop). The dropped card is merged
+ * into the kept one the way an import merges: gaps are filled, every email, phone,
+ * link and source is kept, its note is added, and its photo fills an empty frame.
+ * Single values that disagree (another name, company, title, ...) are written into
+ * the kept card's note, so nothing is lost. The dropped card is then deleted, after
+ * a backup of the database is saved to data/backups/.
  *
  * Pairs are given explicitly by id, with no fuzzy name matching, because deciding
  * "same person" needs human judgment: two different people can share a name.
  *
  * Usage:
- *   npm run merge:dupes -- 12:34 56:78            # dry run
- *   npm run merge:dupes -- --apply 12:34 56:78    # write
+ *   npm run merge:dupes -- 12:34 12:35 56:78          # dry run
+ *   npm run merge:dupes -- --apply 12:34 12:35 56:78  # write
  *
- * Each argument is keepId:dropId. Keep the row with the better primary email.
+ * Each argument is keepId:dropId. Keep the row with the better primary email. To
+ * merge three cards into one, name the kept card in both pairs (12:34 12:35).
  */
 import { getDb } from '../src/lib/db';
+import { defaultCountry, recToColumns, rowToRec, type Rec } from '../src/lib/import';
+import { mergeStored, pairProblem, type Pair, type StoredRow } from '../src/lib/import/dupes';
+import { backupDatabase } from '../src/lib/import/run';
 
-const APPLY = process.argv.includes('--apply');
+const USAGE = 'Usage: npm run merge:dupes -- [--apply] keepId:dropId [keepId:dropId ...]';
 
-function parsePairs(args: string[]): Array<[number, number]> {
-  const pairs: Array<[number, number]> = [];
-  for (const a of args) {
+function fail(message: string): never {
+  console.error(message);
+  process.exit(1);
+}
+
+const args = process.argv.slice(2);
+if (args.includes('--help') || args.includes('-h')) {
+  console.log(USAGE);
+  process.exit(0);
+}
+const unknown = args.filter((a) => a.startsWith('-') && a !== '--apply');
+if (unknown.length) fail(`Unknown option ${unknown[0]}.\n${USAGE}`);
+const APPLY = args.includes('--apply');
+
+function parsePairs(list: string[]): Pair[] {
+  const pairs: Pair[] = [];
+  for (const a of list) {
     const m = a.match(/^(\d+):(\d+)$/);
-    if (!m) {
-      console.error(`Bad argument "${a}": expected keepId:dropId`);
-      process.exit(1);
-    }
-    const keep = Number(m[1]);
-    const drop = Number(m[2]);
-    if (keep === drop) {
-      console.error(`Refusing to merge ${keep} into itself`);
-      process.exit(1);
-    }
-    pairs.push([keep, drop]);
+    if (!m) fail(`Bad argument "${a}": expected keepId:dropId`);
+    pairs.push([Number(m[1]), Number(m[2])]);
   }
-  if (pairs.length === 0) {
-    console.error('Usage: npm run merge:dupes -- [--apply] keepId:dropId [keepId:dropId ...]');
-    process.exit(1);
-  }
+  if (pairs.length === 0) fail(USAGE);
+  const problem = pairProblem(pairs);
+  if (problem) fail(problem);
   return pairs;
 }
 
-const PAIRS = parsePairs(process.argv.slice(2).filter((a) => !a.startsWith('--')));
-
-type Row = {
-  id: number;
-  full_name: string;
-  title: string | null;
-  company: string | null;
-  email: string | null;
-  phone: string | null;
-  notes: string | null;
-  connected_on: string | null;
-  last_contacted: string | null;
-};
-
-const norm = (v: string | null): string => (v ?? '').trim().toLowerCase();
-const FILLABLE: (keyof Row)[] = ['title', 'company', 'email', 'phone', 'connected_on', 'last_contacted'];
+const PAIRS = parsePairs(args.filter((a) => !a.startsWith('-')));
 
 function main() {
   const db = getDb();
-  const get = (id: number) =>
-    db
-      .prepare(
-        'SELECT id, full_name, title, company, email, phone, notes, connected_on, last_contacted FROM contacts WHERE id = ?'
-      )
-      .get(id) as Row | undefined;
+  const country = defaultCountry();
+  const get = db.prepare(
+    `SELECT id, full_name, title, company, email, phone, alt_emails, alt_phones, urls, notes,
+            connected_on, last_contacted, sources, industry, photo IS NOT NULL AS has_photo, photo, photo_type
+       FROM contacts WHERE id = ?`
+  );
+  const load = (id: number) => get.get(id) as StoredRow | undefined;
 
-  const ops: Array<{ keep: Row; extras: string[]; notes: string | null }> = [];
-
+  const kept = new Map<number, Rec>();
+  const drops: number[] = [];
   for (const [keepId, dropId] of PAIRS) {
-    const keep = get(keepId);
-    const drop = get(dropId);
-    if (!keep || !drop) {
-      console.log(`! skipping [${keepId} <- ${dropId}] — row missing`);
+    const keepRow = load(keepId);
+    const drop = load(dropId);
+    if (!keepRow || !drop) {
+      console.log(`! skipping [${keepId} <- ${dropId}]: no card #${keepRow ? dropId : keepId}`);
       continue;
     }
-
-    const merged: Row = { ...keep };
-    const extras: string[] = [];
-    // FILLABLE excludes `id`, so every value here is string | null.
-    const m = merged as unknown as Record<string, string | null>;
-    const d = drop as unknown as Record<string, string | null>;
-    for (const f of FILLABLE) {
-      if (!m[f] && d[f]) {
-        m[f] = d[f];
-      } else if (m[f] && d[f] && norm(m[f]) !== norm(d[f])) {
-        extras.push(`${f}: ${d[f]}`);
-      }
-    }
-
-    let notes = merged.notes ?? '';
-    if (drop.notes && !notes.includes(drop.notes)) notes = notes ? `${notes}\n${drop.notes}` : drop.notes;
-    if (extras.length) notes = `${notes ? notes + '\n' : ''}Merged duplicate — also: ${extras.join('; ')}`;
-    merged.notes = notes || null;
-
-    ops.push({ keep: merged, extras, notes: merged.notes });
-
-    console.log(`\n• ${keep.full_name}  (keep #${keepId} <- drop #${dropId})`);
-    console.log(`   email   : ${merged.email ?? '-'}`);
-    console.log(`   company : ${merged.company ?? '-'}`);
-    console.log(`   phone   : ${merged.phone ?? '-'}`);
-    if (extras.length) console.log(`   + Notes : also ${extras.join('; ')}`);
+    const keep = kept.get(keepId) ?? rowToRec(keepRow);
+    kept.set(keepId, keep);
+    const { conflicts } = mergeStored(keep, drop, country);
+    drops.push(dropId);
+    const cols = recToColumns(keep);
+    console.log(`\n• ${keep.full_name}  (keep #${keepId} <- drop #${dropId} ${drop.full_name})`);
+    console.log(`   emails  : ${[cols.email, ...(cols.alt_emails?.split('\n') ?? [])].filter(Boolean).join(', ') || '-'}`);
+    console.log(`   phones  : ${[cols.phone, ...(cols.alt_phones?.split('\n') ?? [])].filter(Boolean).join(', ') || '-'}`);
+    console.log(`   company : ${cols.company ?? '-'}`);
+    if (keep.photo) console.log('   photo   : taken from the dropped card');
+    if (conflicts.length) console.log(`   + note  : also ${conflicts.join('; ')}`);
   }
 
   if (!APPLY) {
-    console.log(`\n(dry run — ${ops.length} merges; re-run with --apply to write)`);
+    console.log(`\n(dry run — ${drops.length} merges; re-run with --apply to write)`);
     return;
   }
+  if (drops.length === 0) return;
 
+  const backup = backupDatabase();
   const upd = db.prepare(`
     UPDATE contacts SET
-      title=@title, company=@company, email=@email, phone=@phone,
-      notes=@notes, connected_on=@connected_on, last_contacted=@last_contacted,
-      updated_at=datetime('now')
-    WHERE id=@id
+      full_name = @full_name, title = @title, company = @company, email = @email, phone = @phone,
+      alt_emails = @alt_emails, alt_phones = @alt_phones, urls = @urls, notes = @notes,
+      connected_on = @connected_on, last_contacted = @last_contacted, industry = @industry, sources = @sources,
+      updated_at = datetime('now')
+    WHERE id = @id
   `);
+  const photo = db.prepare('UPDATE contacts SET photo = ?, photo_type = ? WHERE id = ?');
   const del = db.prepare('DELETE FROM contacts WHERE id = ?');
 
   db.exec('BEGIN');
   try {
-    for (let i = 0; i < ops.length; i++) {
-      const { keep } = ops[i];
-      upd.run({
-        id: keep.id,
-        title: keep.title,
-        company: keep.company,
-        email: keep.email,
-        phone: keep.phone,
-        notes: keep.notes,
-        connected_on: keep.connected_on,
-        last_contacted: keep.last_contacted,
-      });
-      del.run(PAIRS[i][1]);
+    for (const [id, rec] of kept) {
+      upd.run({ id, ...recToColumns(rec) });
+      if (rec.photo) photo.run(rec.photo.data, rec.photo.type, id);
     }
+    for (const id of drops) del.run(id);
     db.exec('COMMIT');
   } catch (err) {
     db.exec('ROLLBACK');
     throw err;
   }
   db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
-  console.log(`\nApplied ${ops.length} merges (deleted ${ops.length} duplicate rows).`);
+  console.log(`\nApplied ${drops.length} merges (deleted ${drops.length} duplicate rows).`);
+  if (backup) console.log(`Backup saved first: ${backup}`);
 }
 
 main();

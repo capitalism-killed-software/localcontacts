@@ -42,3 +42,6 @@ The first public release.
 - Two different people with the same name are no longer fused into one card: a name match is
   refused when the cards disagree on both their emails and their phones. When a name match does
   merge, a different title or company is kept in the note instead of being dropped.
+- `npm run merge:dupes` merges the way an import does, so the dropped card's further emails,
+  phones, links, photo and groups are kept; disagreeing values go into the note. It saves a
+  backup first and refuses chained or repeated pairs, which used to delete a contact outright.

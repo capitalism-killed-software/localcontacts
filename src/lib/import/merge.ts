@@ -221,6 +221,16 @@ function mergeInto(t: Rec, inc: Rec, stats: MergeStats, country: CountryCode, by
   return changed;
 }
 
+const emptyStats = (): MergeStats => ({
+  incoming: 0, inserted: 0, mergedIntoExisting: 0, mergedWithinImport: 0,
+  filledEmail: 0, filledPhone: 0, addedEmails: 0, addedPhones: 0, addedPhotos: 0, skippedUnmatched: 0,
+});
+
+/** Merges `other` into `target` the way an import does; true when `target` changed. */
+export function mergeRecInto(target: Rec, other: Rec, country: CountryCode): boolean {
+  return mergeInto(target, other, emptyStats(), country);
+}
+
 export function planMerge(
   existing: ExistingRow[],
   batches: Batch[],
@@ -228,10 +238,7 @@ export function planMerge(
 ): { rows: Rec[]; stats: MergeStats } {
   const { country } = opts;
   const tagOnly = opts.tagOnly ?? false;
-  const stats: MergeStats = {
-    incoming: 0, inserted: 0, mergedIntoExisting: 0, mergedWithinImport: 0,
-    filledEmail: 0, filledPhone: 0, addedEmails: 0, addedPhones: 0, addedPhotos: 0, skippedUnmatched: 0,
-  };
+  const stats = emptyStats();
   const byEmail = new Map<string, Rec>();
   const byPhone = new Map<string, Rec>();
   const byName = new Map<string, Rec>();
