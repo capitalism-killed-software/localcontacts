@@ -35,6 +35,10 @@ macOS and Linux: `npm run app`. Windows: `scripts\app\launch.cmd`.
 
 If no window appears, open <http://localhost:3000> in your browser instead and note it.
 
+- [ ] Nobody else can open it: on a phone on the same Wi-Fi, try `http://<this computer's
+      address>:3000` (macOS: System Settings → Wi-Fi → Details; Windows: `ipconfig`; Linux:
+      `hostname -I`). It should not load.
+
 ## 3. Try it with fake contacts first
 
 In the terminal (stop the app first with Ctrl-C, or use a second terminal):
@@ -46,6 +50,8 @@ In the terminal (stop the app first with Ctrl-C, or use a second terminal):
 - [ ] Up and Down arrow keys move between cards. Home and End jump to the first and last.
 - [ ] Click in the names list and type the start of a surname (e.g. "lov"): it jumps to that person.
 - [ ] The search box narrows the list as you type, and the open card stays open.
+- [ ] Search ignores accents, capitals and phone formatting: "nunez" finds José Núñez-Ibáñez,
+      "2025550102" finds Grace Hopper (+1-202-555-0102), and "hopper grace" finds her too.
 - [ ] The red ribbon at the top of the left page hides and shows the Groups column.
 - [ ] Clicking a group (e.g. "Missing phone") narrows the list; "All Contacts" brings everyone back.
 
@@ -58,6 +64,8 @@ Export your contacts from one or two places you use, following
 2. Drop the files onto the dashed box, or click it and choose them.
 
 - [ ] Each file gets a ✓ with its format and a number of contacts.
+- [ ] A CSV saved by Excel, including a semicolon-separated one from European settings, imports
+      with its accents intact.
 - [ ] A file that is not a contact export (try any text file) gets a ✗ with an explanation, and
       the Import button does not appear until you remove it.
 - [ ] The summary shows how many are new and how many merge with people already there.
@@ -73,9 +81,13 @@ Export your contacts from one or two places you use, following
       re-sorts with the new name.
 - [ ] The green ⊕ adds another email or phone row; the red ⊖ removes one.
 - [ ] Click the photo square, choose a photo (JPEG or PNG under 2 MB): it shows on the card.
-- [ ] Choosing something that is not an image shows a red message instead.
+- [ ] Choosing something that is not an image, or an image file that is damaged or only partly
+      downloaded, shows a red message instead.
 - [ ] **remove** under the photo clears it.
-- [ ] **+** under the names list creates a new card.
+- [ ] **+** under the names list creates a new card. Double-clicking **Done** still makes only
+      one card.
+- [ ] With changes typed but not saved, clicking another name or group asks before throwing them
+      away; **Cancel** just cancels.
 - [ ] **Delete Card…** asks first, then removes the card.
 
 ## 6. Export
