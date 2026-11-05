@@ -15,6 +15,8 @@ right, the red ribbon that shows and hides the groups. It runs in any browser on
 
 ![The import page: three files checked, one CSV with its columns chosen by hand](docs/images/import.png)
 
+![Clean Up: two cards with the same name side by side, with keep left, keep right or not the same person](docs/images/cleanup.png)
+
 <img src="docs/images/phone.png" alt="On a phone the book shows one page at a time" width="260">
 
 All people in these pictures are made up.
@@ -73,6 +75,15 @@ Everything else is under **More** below the groups: **Clean up…**, **Export…
 and **About** (with a **Check for updates** button, the only time the app asks the internet
 anything). To load fake data from the command line instead:
 `npm run import -- --apply seed/sample-contacts.csv`.
+
+## Updating
+
+From a clone: `git pull`, then start it as usual. `npm run app` and the Windows launcher
+install and build again by themselves when the code has changed; with `npm start`, run
+`npm install && npm run build` first (it warns you if you forget). With Docker:
+`docker compose pull && docker compose up -d` (see the [deployment guide](docs/DEPLOY.md)).
+The database upgrades itself on start. **More → About localcontacts → Check for updates** tells
+you when there is a new release.
 
 ## Import your own contacts
 

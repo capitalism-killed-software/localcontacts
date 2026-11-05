@@ -140,6 +140,10 @@ Ubuntu VM (`npm start`, `npm run app` and Docker each listen on this computer on
 - Hand testing on macOS, Windows and Linux with `docs/TESTING.md`, including the first run of
   `scripts/app/install-desktop.sh` on a Mac and `scripts/app/launch.cmd` on Windows. What it
   finds goes into 1.0.1, each fix with a test.
+- 1.1.0 (below), released as a GitHub release and a ready-made container image.
+- Then npm as 1.1.1: `npx localcontacts` starts the app with no clone and no build, keeping the
+  data in a user folder (not npm's cache). It gets its own plan. PyPI doesn't fit: it is for
+  Python packages.
 ## After 1.0: getting people who don't use a terminal on board
 
 Today, starting means installing Node.js and running `npm install`, then facing an empty book.

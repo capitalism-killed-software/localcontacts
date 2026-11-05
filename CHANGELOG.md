@@ -49,6 +49,22 @@ Everything can now be done from the book, without a terminal.
   another site, or another app on this computer, asked for them.
 - The service worker no longer handles requests to other sites.
 
+**Updating and Docker**
+- `npm run app` and the Windows launcher install and build again after an update (they used
+  to build only the first time, so a `git pull` kept the old version running). `npm start`
+  warns when the build is older than the code.
+- A ready-made image for Intel and ARM, `ghcr.io/capitalism-killed-software/localcontacts`
+  (`1.1.0`, `1.1`, `1`, `latest`), built and checked by CI for every release.
+  `docker-compose.yml` uses it, so a home server no longer builds the app itself.
+
+**Updating from 1.0**
+- From a clone: `git pull`, then `npm run app` as before (or `npm install && npm run build`
+  before `npm start`).
+- With Docker: take the new `docker-compose.yml` (it uses the image), then
+  `docker compose pull && docker compose up -d`. Or keep building it yourself with
+  `docker compose up -d --build`.
+- The database upgrades itself. Backups made by 1.0 are listed under Backups without a reason.
+
 **For developers**
 - The clean-up scripts are wrappers over `src/lib/cleanup/` and `src/lib/industry.ts`; exports
   go through `src/lib/export/book.ts`; backups live in `src/lib/backups.ts`.

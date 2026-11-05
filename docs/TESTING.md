@@ -137,14 +137,22 @@ Press **Look around with sample people**.
 - [ ] **Check for updates** says you have the latest version (or names a newer one with a link).
       Nothing is sent anywhere until you press it.
 
-## 10. Bigger lists
+## 10. Updating
+
+If you tested 1.0 on this computer:
+
+- [ ] `git pull`, then start it the usual way (`npm run app` or `launch.cmd`): it says it is
+      installing and building, and then shows the new version (**More → About** says 1.1).
+- [ ] Your cards from 1.0 are still there, and **More → Backups…** lists the 1.0 backups.
+
+## 11. Bigger lists
 
 If you have more than a few hundred contacts:
 
 - [ ] Scrolling the names list is smooth, and the current letter stays pinned at the top.
 - [ ] Clicking between cards feels instant.
 
-## 11. On a phone (optional)
+## 12. On a phone (optional)
 
 Only if the app runs on a computer your phone can reach (see the
 [deployment guide](DEPLOY.md), section 3).
@@ -153,18 +161,21 @@ Only if the app runs on a computer your phone can reach (see the
       goes back.
 - [ ] Your phone's browser offers to add it to the home screen.
 
-## 12. App icon on your computer
+## 13. App icon on your computer
 
 - [ ] macOS or Linux: `bash scripts/app/install-desktop.sh` puts **localcontacts** in your
       Applications (macOS) or app launcher (Linux) with a leather-book icon, and opening it
       starts the app. **On a Mac this has never been tried: please report exactly what happens.**
 - [ ] Any OS: in Chrome or Edge, the install icon in the address bar adds it as an app.
 
-## 13. Docker (optional, for home servers)
+## 14. Docker (optional, for home servers)
 
-`docker compose up -d --build`, then <http://localhost:3000>.
+`docker compose up -d` (it downloads the ready-made image), then <http://localhost:3000>.
 
-- [ ] The book opens; data survives `docker compose restart`.
+- [ ] The book opens on the welcome; data survives `docker compose restart`.
+- [ ] On an ARM machine (a Raspberry Pi, an Apple Silicon Mac with Docker), the same works.
+- [ ] Building it yourself works too: replace the `image:` line in `docker-compose.yml` with
+      `build: .` and run `docker compose up -d --build`.
 
 ## Reporting a problem
 
