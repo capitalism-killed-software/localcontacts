@@ -63,10 +63,11 @@ describe('other formats', () => {
     expect(parseText(text, 'outlook-csv').contacts[0].phones).toHaveLength(cols.length);
   });
 
-  it('cleans up email values: mailto:, several in a cell, and things that are not addresses', () => {
+  it('cleans up email values: mailto: and several in a cell; keeps a value that is not an address', () => {
     const r = parseText('Name,Email,Email 2\nMulti Mail,"a@example.com, b@example.com; c@example.com",mailto:d@example.com\nGrace,/o=ExchangeLabs/ou=Exchange/cn=Recipients/cn=grace,+1 202 555 0181\n', 'generic-csv');
     expect(r.contacts[0].emails).toEqual(['a@example.com', 'b@example.com', 'c@example.com', 'd@example.com']);
-    expect(r.contacts[1].emails).toEqual([]);
+    // Not an address, but never thrown away: it stays as it was written.
+    expect(r.contacts[1].emails).toEqual(['/o=ExchangeLabs/ou=Exchange/cn=Recipients/cn=grace', '+1 202 555 0181']);
   });
 
   it('merges a nameless Telegram entry with the named card that has its number', () => {

@@ -148,4 +148,22 @@ describe('export CLI', { timeout: 60_000 }, () => {
     expect(r.err).toMatch(/its folder does not exist/);
     expect(r.err).not.toMatch(/\n\s+at /);
   });
+
+  it('keeps an untagged card untagged, and an email field that holds no address, through a round trip', () => {
+    const db1 = join(dir, 'one.db');
+    expect(run('scripts/import.ts', db1, ['--apply', FIXTURES[0]]).status).toBe(0);
+    const d = new DatabaseSync(db1);
+    d.prepare("INSERT INTO contacts (full_name, email, sources) VALUES ('Odd Email', '(555)5550199', NULL)").run();
+    d.close();
+    for (const format of ['vcard', 'csv'] as const) {
+      const file = join(dir, `odd.${format}`);
+      expect(run('scripts/export.ts', db1, [`--format=${format}`, `--out=${file}`]).status).toBe(0);
+      const db2 = join(dir, `odd-${format}.db`);
+      expect(run('scripts/import.ts', db2, ['--apply', file]).status).toBe(0);
+      const x = new DatabaseSync(db2);
+      const back = x.prepare("SELECT email, sources FROM contacts WHERE full_name = 'Odd Email'").get();
+      x.close();
+      expect(back, format).toEqual({ email: '(555)5550199', sources: null });
+    }
+  });
 });

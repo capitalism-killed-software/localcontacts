@@ -72,11 +72,17 @@ export function dedupeBy<T>(items: T[], key: (t: T) => string | null): T[] {
 
 const trimmed = (list: string[]) => list.map((s) => s.trim()).filter((s) => s.length > 0);
 
-// The addresses in an email value: "mailto:" dropped, a cell holding several
-// ("a@x.com, b@x.com; c@x.com") split, and anything that is not an address (an
-// Exchange "/o=..." path, a phone number in the wrong column) left out.
+// The addresses in an email value: "mailto:" dropped and a cell holding several
+// ("a@x.com, b@x.com; c@x.com") split. A value with no address in it (an Exchange
+// "/o=..." path, a number typed in the wrong field) is kept as it is: the
+// importer never throws away what a file holds.
 const ADDRESS = /[^\s@<>,;:"'()[\]]+@[^\s@<>,;:"'()[\]]+\.[^\s@<>,;:"'()[\]]+/g;
-export const extractEmails = (v: string): string[] => v.match(ADDRESS) ?? [];
+export const extractEmails = (v: string): string[] => {
+  const found = v.match(ADDRESS);
+  if (found) return found;
+  const kept = v.replace(/^mailto:/i, '').trim();
+  return kept ? [kept] : [];
+};
 
 export const dedupeEmails = (list: string[]): string[] =>
   dedupeBy(trimmed(list).flatMap(extractEmails), (e) => emailKey(e) ?? e.toLowerCase());

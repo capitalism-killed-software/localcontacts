@@ -107,7 +107,9 @@ export function recToColumns(rec: Rec) {
 }
 
 function fromIncoming(c: IncomingContact, source: string, batch: number, explicit = false): Rec {
-  const own = c.sources?.length ? c.sources : null;
+  // Our own export says which groups the card had, an empty list included (an
+  // untagged card stays untagged instead of joining the file's default tag).
+  const own = c.sources ?? null;
   return {
     id: null,
     full_name: c.name,
@@ -247,6 +249,7 @@ export function planMerge(
   const byPhone = new Map<string, Rec>();
   const byName = new Map<string, Rec>();
   const phoneOwners = new Map<string, Set<Rec>>(); // to see when a number is shared
+  const byId = new Map<number, Rec>(); // stored cards, for our own exports' card ids
   const all: Rec[] = [];
 
   const nameOf = (r: Rec): string => (r.full_name === NO_NAME ? '' : nameKey(r.full_name));
@@ -289,6 +292,15 @@ export function planMerge(
     a.batch !== null && a.batch === b.batch && !!a.uid && !!b.uid && a.uid !== b.uid;
 
   const find = (r: Rec): { hit: Rec; byName: boolean } | undefined => {
+    // A card from localcontacts' own export names the card it was exported from
+    // (UID localcontacts-12). In the same book that is the card itself, even when
+    // another card shares its email; elsewhere the id belongs to someone else, so
+    // it only counts when the name agrees.
+    const ownId = r.uid?.match(/^localcontacts-(\d+)$/)?.[1];
+    if (ownId) {
+      const hit = byId.get(Number(ownId));
+      if (hit && nameKey(hit.full_name) === nameKey(r.full_name)) return { hit, byName: false };
+    }
     for (const e of r.emails) {
       const k = emailKey(e);
       const hit = k ? byEmail.get(k) : undefined;
@@ -316,6 +328,7 @@ export function planMerge(
     const r = rowToRec(row);
     all.push(r);
     index(r);
+    byId.set(row.id, r);
   }
 
   for (const [b, batch] of batches.entries()) {

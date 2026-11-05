@@ -117,6 +117,32 @@ describe('planMerge', () => {
     expect(same.rows[0].notes).toBeNull();
   });
 
+  it('matches a card from our own export to the card it came from, even when another shares its email', () => {
+    const stored = [
+      row({ id: 1, full_name: 'pat@example.com', email: 'pat@example.com', sources: 'iphone' }),
+      row({ id: 2, full_name: 'Pat Example', email: 'pat@example.com', company: 'Acme', sources: 'google-work' }),
+    ];
+    const again = planMerge(stored, [{ source: 'vcard', contacts: [
+      inc({ name: 'pat@example.com', emails: ['pat@example.com'], uid: 'localcontacts-1', sources: ['iphone'] }),
+      inc({ name: 'Pat Example', emails: ['pat@example.com'], org: 'Acme', uid: 'localcontacts-2', sources: ['google-work'] }),
+    ] }], opts);
+    expect(again.rows.map((r) => r.dirty)).toEqual([false, false]);
+    expect(again.stats).toMatchObject({ inserted: 0, mergedIntoExisting: 0, unchanged: 2 });
+    // In another book, id 2 is someone else: the name decides, and the email match applies.
+    const other = planMerge([row({ id: 2, full_name: 'Someone Else', email: 'else@example.com' })], [{ source: 'vcard', contacts: [
+      inc({ name: 'Pat Example', emails: ['pat@example.com'], uid: 'localcontacts-2' }),
+    ] }], opts);
+    expect(other.stats.inserted).toBe(1);
+  });
+
+  it('keeps an untagged card from our own export untagged', () => {
+    const { rows } = planMerge([], [
+      { source: 'vcard', contacts: [inc({ name: 'Una Tagged', emails: ['una@example.com'], sources: [] })] },
+      { source: 'work', explicit: true, contacts: [inc({ name: 'Ex Plicit', emails: ['ex@example.com'], sources: [] })] },
+    ], opts);
+    expect(rows.map((r) => recToColumns(r).sources)).toEqual([null, 'work']);
+  });
+
   it('merges duplicates within the same run and across files', () => {
     const { rows, stats } = planMerge([], [
       batch('google', inc({ name: 'Ada Lovelace', emails: ['ada@example.com'] })),

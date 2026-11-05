@@ -75,8 +75,11 @@ The first public release.
   that isn't kept is listed in the dry run; base64-encoded names and vCard 4's preferred name
   are read; social profile links are kept.
 - Outlook CSV keeps the Pager, ISDN, Callback, Radio, TTY/TDD and Assistant's phone columns.
-  Email values are cleaned up (`mailto:` dropped, several addresses in a cell split, Exchange
-  paths and other non-addresses left out). A nameless Telegram entry merges with the named card
+  Email values are cleaned up (`mailto:` dropped, several addresses in a cell split); a value
+  with no address in it is kept as it was written. A card from one of our own exports is matched first to the
+  card it came from (by its id, when the name agrees), so importing an export into the book it
+  came from changes nothing even when two cards share an email, and an untagged card stays
+  untagged. A nameless Telegram entry merges with the named card
   that has its number, and a nameless card on a number several people share is not merged into
   one of them. Refused files get a reason that fits: a chat export, damaged JSON, an unclosed
   quote in a CSV, a binary file.
