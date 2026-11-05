@@ -18,8 +18,8 @@
  */
 import { getDb } from '../src/lib/db';
 import { defaultCountry, recToColumns, rowToRec, type Rec } from '../src/lib/import';
+import { applyDuplicates } from '../src/lib/cleanup/dupes';
 import { mergeStored, pairProblem, type Pair, type StoredRow } from '../src/lib/import/dupes';
-import { backupDatabase } from '../src/lib/import/run';
 
 const USAGE = 'Usage: npm run merge:dupes -- [--apply] keepId:dropId [keepId:dropId ...]';
 
@@ -90,32 +90,8 @@ function main() {
   }
   if (drops.length === 0) return;
 
-  const backup = backupDatabase();
-  const upd = db.prepare(`
-    UPDATE contacts SET
-      full_name = @full_name, title = @title, company = @company, email = @email, phone = @phone,
-      alt_emails = @alt_emails, alt_phones = @alt_phones, urls = @urls, notes = @notes,
-      connected_on = @connected_on, last_contacted = @last_contacted, industry = @industry, sources = @sources,
-      updated_at = datetime('now')
-    WHERE id = @id
-  `);
-  const photo = db.prepare('UPDATE contacts SET photo = ?, photo_type = ? WHERE id = ?');
-  const del = db.prepare('DELETE FROM contacts WHERE id = ?');
-
-  db.exec('BEGIN');
-  try {
-    for (const [id, rec] of kept) {
-      upd.run({ id, ...recToColumns(rec) });
-      if (rec.photo) photo.run(rec.photo.data, rec.photo.type, id);
-    }
-    for (const id of drops) del.run(id);
-    db.exec('COMMIT');
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
-  }
-  db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
-  console.log(`\nApplied ${drops.length} merges (deleted ${drops.length} duplicate rows).`);
+  const { merged, backup } = applyDuplicates({ merges: PAIRS });
+  console.log(`\nApplied ${merged} merges (deleted ${merged} duplicate rows).`);
   if (backup) console.log(`Backup saved first: ${backup}`);
 }
 

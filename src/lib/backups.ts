@@ -217,6 +217,11 @@ export function restoreBackup(name: string): { saved: string | null; cards: numb
     try {
       db.exec('DELETE FROM main.contacts');
       db.exec(`INSERT INTO main.contacts (${shared}) SELECT ${shared} FROM b.contacts`);
+      // The "not the same person" choices go back as they were too (none before 1.1).
+      db.exec('DELETE FROM main.not_duplicates');
+      if (db.prepare(`SELECT 1 FROM b.sqlite_master WHERE type = 'table' AND name = 'not_duplicates'`).get()) {
+        db.exec('INSERT INTO main.not_duplicates (a, b) SELECT a, b FROM b.not_duplicates');
+      }
       migrateData(db);
       db.exec('COMMIT');
     } catch (err) {

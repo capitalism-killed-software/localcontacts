@@ -15,9 +15,7 @@
  *   npm run clean:names            # dry run: prints proposed changes only
  *   npm run clean:names -- --apply # write the changes
  */
-import { getDb } from '../src/lib/db';
-import { emailLike, proposeNameFix, type NameFix, type NameRow } from '../src/lib/clean-names';
-import { backupDatabase } from '../src/lib/import/run';
+import { applyNameFixes, nameCandidateCount, nameFixCandidates } from '../src/lib/cleanup/names';
 
 const USAGE = 'Usage: npm run clean:names [-- --apply]';
 const args = process.argv.slice(2);
@@ -33,35 +31,19 @@ if (unknown.length) {
 const APPLY = args.includes('--apply');
 
 function main() {
-  const db = getDb();
-  const rows = db
-    .prepare(
-      `SELECT id, full_name, email, alt_emails, company FROM contacts
-       WHERE full_name LIKE '%@%' OR full_name = '(no name)'
-       ORDER BY full_name`
-    )
-    .all() as Array<NameRow & { id: number }>;
-
-  const changes: Array<{ row: NameRow & { id: number }; fix: NameFix }> = [];
-  for (const row of rows) {
-    const fix = proposeNameFix(row);
-    if (fix) changes.push({ row, fix });
-  }
-
-  const derived = changes.filter((c) => !emailLike(c.fix.name)).length;
-  console.log(`Candidates (email/junk names): ${rows.length}`);
+  const looked = nameCandidateCount();
+  const changes = nameFixCandidates();
+  const derived = changes.filter((c) => c.derived).length;
+  console.log(`Candidates (email/junk names): ${looked}`);
   console.log(`Proposed changes             : ${changes.length}`);
   console.log(`  → real name derived        : ${derived}`);
   console.log(`  → cleaned to bare email    : ${changes.length - derived}`);
-  console.log(`Unchanged (already clean-ish): ${rows.length - changes.length}`);
+  console.log(`Unchanged (already clean-ish): ${looked - changes.length}`);
   console.log('');
-  for (const { row, fix } of changes) {
-    const tag = emailLike(fix.name) ? 'email' : 'NAME ';
-    const extra = [
-      fix.addEmails.length ? `keeps ${fix.addEmails.join(', ')} as an email` : '',
-      fix.company ? `company: ${fix.company}` : '',
-    ].filter(Boolean);
-    console.log(`  [${tag}] "${row.full_name}"  ->  "${fix.name}"${extra.length ? `  (${extra.join('; ')})` : ''}`);
+  for (const c of changes) {
+    const tag = c.derived ? 'NAME ' : 'email';
+    const extra = [c.addEmails.length ? `keeps ${c.addEmails.join(', ')} as an email` : '', c.company ? `company: ${c.company}` : ''].filter(Boolean);
+    console.log(`  [${tag}] "${c.from}"  ->  "${c.to}"${extra.length ? `  (${extra.join('; ')})` : ''}`);
   }
 
   if (!APPLY) {
@@ -69,26 +51,8 @@ function main() {
     return;
   }
   if (changes.length === 0) return;
-
-  const backup = backupDatabase();
-  const upd = db.prepare(
-    `UPDATE contacts SET full_name = ?, email = ?, alt_emails = ?, company = ?, updated_at = datetime('now') WHERE id = ?`
-  );
-  db.exec('BEGIN');
-  try {
-    for (const { row, fix } of changes) {
-      const emails = [row.email, ...(row.alt_emails ?? '').split('\n'), ...fix.addEmails]
-        .map((e) => (e ?? '').trim())
-        .filter(Boolean);
-      upd.run(fix.name, emails[0] ?? null, emails.slice(1).join('\n') || null, row.company ?? fix.company, row.id);
-    }
-    db.exec('COMMIT');
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
-  }
-  db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
-  console.log(`\nApplied ${changes.length} updates.`);
+  const { changed, backup } = applyNameFixes(changes.map((c) => c.id));
+  console.log(`\nApplied ${changed} updates.`);
   if (backup) console.log(`Backup saved first: ${backup}`);
 }
 

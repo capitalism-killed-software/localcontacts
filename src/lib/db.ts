@@ -38,6 +38,13 @@ function open(): DatabaseSync {
     CREATE INDEX IF NOT EXISTS idx_contacts_full_name ON contacts(full_name);
     CREATE INDEX IF NOT EXISTS idx_contacts_company   ON contacts(company);
     CREATE INDEX IF NOT EXISTS idx_contacts_email     ON contacts(email);
+    -- Pairs of cards someone said are not the same person (Clean-up's
+    -- "Not the same person"), so they are not suggested as duplicates again.
+    CREATE TABLE IF NOT EXISTS not_duplicates (
+      a INTEGER NOT NULL,
+      b INTEGER NOT NULL,
+      PRIMARY KEY (a, b)
+    ) WITHOUT ROWID;
   `);
   // Migrations for columns added after a database was first created
   // (CREATE TABLE IF NOT EXISTS won't alter an existing table). Idempotent —
