@@ -5,8 +5,8 @@ import { dedupeEmails, dedupePhones, dedupeStrings, emailKey, joinLines, nameKey
 
 // The merge engine. Every existing row and every incoming contact becomes a
 // Rec; incoming ones are matched against the index by any email, then any
-// phone, then normalized name. A match fills gaps and unions the lists; no
-// match becomes an insert.
+// phone, then normalized name (unless the two disagree on both emails and
+// phones). A match fills gaps and unions the lists; no match becomes an insert.
 
 export type ExistingRow = {
   id: number;
@@ -148,8 +148,30 @@ function unionSources(t: Rec, inc: Rec): boolean {
   return t.sources.length !== before;
 }
 
-function mergeInto(t: Rec, inc: Rec, stats: MergeStats, country: CountryCode): boolean {
+// Adds a line to the notes unless the notes already hold it.
+function appendNote(t: Rec, text: string): boolean {
+  if (!t.notes) {
+    t.notes = text;
+    return true;
+  }
+  if (t.notes.includes(text)) return false;
+  t.notes = `${t.notes}\n${text}`;
+  return true;
+}
+
+const differs = (a: string | null, b: string | null): boolean =>
+  !!a && !!b && a.trim().toLowerCase() !== b.trim().toLowerCase();
+
+// byName: the match was on the name alone, so a different title or company may
+// belong to someone else or to an older job; it goes into the note rather than
+// being dropped.
+function mergeInto(t: Rec, inc: Rec, stats: MergeStats, country: CountryCode, byName = false): boolean {
   let changed = false;
+  if (byName) {
+    const also = [differs(t.title, inc.title) ? inc.title : null, differs(t.company, inc.company) ? inc.company : null]
+      .filter((x): x is string => !!x);
+    if (also.length && appendNote(t, `Also: ${also.join(' · ')}`)) changed = true;
+  }
   for (const f of ['title', 'company', 'connected_on', 'last_contacted', 'industry'] as const) {
     if (t[f] == null && inc[f] != null) {
       t[f] = inc[f];
@@ -179,15 +201,7 @@ function mergeInto(t: Rec, inc: Rec, stats: MergeStats, country: CountryCode): b
   t.urls = dedupeStrings([...t.urls, ...inc.urls]);
   if (t.urls.length !== urlsBefore) changed = true;
 
-  if (inc.notes && inc.notes !== t.notes) {
-    if (!t.notes) {
-      t.notes = inc.notes;
-      changed = true;
-    } else if (!t.notes.includes(inc.notes)) {
-      t.notes = `${t.notes}\n${inc.notes}`;
-      changed = true;
-    }
-  }
+  if (inc.notes && inc.notes !== t.notes && appendNote(t, inc.notes)) changed = true;
 
   // A real name beats a placeholder ("(no name)" or an email address).
   if (isPlaceholderName(t.full_name) && !isPlaceholderName(inc.full_name)) {
@@ -246,27 +260,37 @@ export function planMerge(
     return !a.emails.some((e) => keys.has(emailKey(e)));
   };
 
+  // Same for phones: both have numbers and none of them is shared.
+  const phonesConflict = (a: Rec, b: Rec): boolean => {
+    if (a.phones.length === 0 || b.phones.length === 0) return false;
+    const keys = new Set(b.phones.map((p) => phoneKey(p, country)).filter(Boolean));
+    return !a.phones.some((p) => keys.has(phoneKey(p, country)));
+  };
+
   // Two cards from the same file with different ids are two people as far
   // as that file is concerned; only an email match overrules that.
   const sameFileDifferentCard = (a: Rec, b: Rec): boolean =>
     a.batch !== null && a.batch === b.batch && !!a.uid && !!b.uid && a.uid !== b.uid;
 
-  const find = (r: Rec): Rec | undefined => {
+  const find = (r: Rec): { hit: Rec; byName: boolean } | undefined => {
     for (const e of r.emails) {
       const k = emailKey(e);
       const hit = k ? byEmail.get(k) : undefined;
-      if (hit) return hit;
+      if (hit) return { hit, byName: false };
     }
     for (const p of r.phones) {
       const k = phoneKey(p, country);
       const hit = k ? byPhone.get(k) : undefined;
       if (hit && !emailsConflict(r, hit) && namesCompatible(r.full_name, hit.full_name) && !sameFileDifferentCard(r, hit)) {
-        return hit;
+        return { hit, byName: false };
       }
     }
+    // A name alone is the weakest sign: two cards that disagree on both their
+    // emails and their phones are two people who share a name.
     const nk = nameOf(r);
     const hit = nk ? byName.get(nk) : undefined;
-    return hit && !sameFileDifferentCard(r, hit) ? hit : undefined;
+    if (!hit || sameFileDifferentCard(r, hit) || (emailsConflict(r, hit) && phonesConflict(r, hit))) return undefined;
+    return { hit, byName: true };
   };
 
   for (const row of existing) {
@@ -279,9 +303,10 @@ export function planMerge(
     for (const c of batch.contacts) {
       stats.incoming++;
       const inc = fromIncoming(c, batch.source, b);
-      const target = find(inc);
-      if (target) {
-        const changed = tagOnly ? unionSources(target, inc) : mergeInto(target, inc, stats, country);
+      const found = find(inc);
+      if (found) {
+        const target = found.hit;
+        const changed = tagOnly ? unionSources(target, inc) : mergeInto(target, inc, stats, country, found.byName);
         if (changed) {
           if (target.id !== null) {
             target.dirty = true;

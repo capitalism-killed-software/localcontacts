@@ -92,7 +92,9 @@ The dry run prints, per file, what it recognised, how many contacts it found and
 will not keep (postal addresses, birthdays, photos that are only a link), then how many contacts are new and how
 many merge into ones you already have. Re-running is safe: a person matched by any email,
 then any phone number, then full name is kept once, empty fields are filled in, and further
-emails, phones, links and a photo are added. Nothing already stored is overwritten.
+emails, phones, links and a photo are added. Nothing already stored is overwritten. Two cards
+with the same name that disagree on both their emails and their phones are kept apart as two
+people; when a name match brings a different job title or company, it goes into the note.
 
 Options:
 

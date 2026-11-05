@@ -86,6 +86,37 @@ describe('planMerge', () => {
     expect(recToColumns(rows[0]).email).toBe('grace@example.com');
   });
 
+  it('keeps same-name people apart when they disagree on both email and phone', () => {
+    const plumber = inc({ name: 'John Smith', emails: ['john.smith@example.com'], phones: ['+1 202 555 0120'], org: 'Acme Plumbing', title: 'Plumber' });
+    const doctor = inc({ name: 'John Smith', emails: ['jsmith@example.org'], phones: ['+1 202 555 0130'], org: 'City Hospital', title: 'Cardiologist' });
+    const within = planMerge([], [batch('vcard', plumber, doctor)], opts);
+    expect(within.rows).toHaveLength(2);
+    expect(within.rows.map((r) => r.company)).toEqual(['Acme Plumbing', 'City Hospital']);
+    const stored = [row({ id: 1, full_name: 'John Smith', email: 'john.smith@example.com', phone: '+1 202 555 0120' })];
+    expect(planMerge(stored, [batch('csv', doctor)], opts).stats.inserted).toBe(1);
+  });
+
+  it('still merges a same-name card that agrees on email or phone, or lacks one of them', () => {
+    const stored = [row({ id: 1, full_name: 'Ada Lovelace', email: 'ada@example.com', phone: '+1 202 555 0101' })];
+    // LinkedIn usually has a work email and no phone: same person.
+    expect(planMerge(stored, [batch('linkedin', inc({ name: 'Ada Lovelace', emails: ['ada@engines.example'] }))], opts).stats.inserted).toBe(0);
+    // A different email but the same phone (in another format): same person.
+    expect(planMerge(stored, [batch('vcard', inc({ name: 'Ada Lovelace', emails: ['ada@engines.example'], phones: ['(202) 555-0101'] }))], opts).stats.inserted).toBe(0);
+  });
+
+  it('keeps a different company and title in the note when it merges by name', () => {
+    const stored = [row({ id: 1, full_name: 'David Lee', email: 'david.lee@example.com', company: 'Lee Bakery', title: 'Owner' })];
+    const { rows, stats } = planMerge(stored, [batch('csv', inc({ name: 'David Lee', emails: ['dlee@example.org'], org: 'Northwind Bank', title: 'Analyst' }))], opts);
+    expect(stats.inserted).toBe(0);
+    expect(rows[0]).toMatchObject({ company: 'Lee Bakery', title: 'Owner', notes: 'Also: Analyst · Northwind Bank' });
+    // Running it again adds nothing.
+    const again = planMerge(rows.map((r) => ({ id: 1, ...recToColumns(r) })), [batch('csv', inc({ name: 'David Lee', emails: ['dlee@example.org'], org: 'Northwind Bank', title: 'Analyst' }))], opts);
+    expect(again.rows[0].dirty).toBe(false);
+    // The same company in another case is not news.
+    const same = planMerge(stored, [batch('csv', inc({ name: 'David Lee', org: 'lee bakery' }))], opts);
+    expect(same.rows[0].notes).toBeNull();
+  });
+
   it('merges duplicates within the same run and across files', () => {
     const { rows, stats } = planMerge([], [
       batch('google', inc({ name: 'Ada Lovelace', emails: ['ada@example.com'] })),

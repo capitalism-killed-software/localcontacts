@@ -39,3 +39,6 @@ The first public release.
 - `npm start`, `npm run app` and the launchers listen on this computer only (127.0.0.1), so
   nobody else on the network can open the book. `CONTACTS_LISTEN` picks another address on
   purpose; the `HOSTNAME` setting DEPLOY.md described never worked.
+- Two different people with the same name are no longer fused into one card: a name match is
+  refused when the cards disagree on both their emails and their phones. When a name match does
+  merge, a different title or company is kept in the note instead of being dropped.
