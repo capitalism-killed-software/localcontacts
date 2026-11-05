@@ -75,7 +75,7 @@ export function decodeFile(input: Buffer): DecodedFile {
   }
   return {
     text: stripBom(out.join('\n')),
-    note: 'parts of this file are not UTF-8 and were read as Western European (Windows-1252); check accented names',
+    note: 'the text encoding is not UTF-8 throughout; those parts were read as Western European (Windows-1252), so check accented names',
   };
 }
 

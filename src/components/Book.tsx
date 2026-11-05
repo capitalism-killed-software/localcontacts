@@ -26,7 +26,9 @@ export default function Book({
 }) {
   return (
     <div className="desk">
-      <div className="book" data-view={view} data-groups="shown">
+      {/* data-groups is set by GroupsToggle once the saved choice is known; until then the
+          inline script in layout.tsx has marked <html> so the right column shows from the start. */}
+      <div className="book" data-view={view}>
         <span className="spine spine-top" aria-hidden="true" />
         <span className="spine spine-bottom" aria-hidden="true" />
         <div className="page page-left">
