@@ -44,7 +44,13 @@ async function applyPhoto(id: number, fd: FormData) {
   if (file instanceof File && file.size > 0) {
     const r = photoFromBytes(new Uint8Array(await file.arrayBuffer()));
     if ('error' in r) {
-      throw new Error(r.error === 'too-large' ? 'The photo is larger than 2 MB.' : 'The photo must be a JPEG, PNG, GIF or WebP image.');
+      throw new Error(
+        r.error === 'too-large'
+          ? 'The photo is larger than 2 MB.'
+          : r.error === 'damaged'
+            ? 'The photo file is damaged or cut off.'
+            : 'The photo must be a JPEG, PNG, GIF or WebP image.'
+      );
     }
     setPhoto(id, r.photo);
   } else if (fd.get('remove_photo') === '1') {

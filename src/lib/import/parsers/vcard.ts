@@ -44,7 +44,7 @@ const SILENT = new Set([
 // Text properties whose value may be base64-encoded (rare, but some exporters do it).
 const TEXT_PROPS = new Set(['FN', 'N', 'NOTE', 'ORG', 'TITLE', 'EMAIL', 'TEL', 'URL'])
 
-type PhotoSkip = 'link' | 'not-image' | 'too-large' | 'empty';
+type PhotoSkip = 'link' | 'not-image' | 'too-large' | 'empty' | 'damaged';
 
 // PHOTO in its three shapes: 3.0 ENCODING=b, 2.1 ENCODING=BASE64, 4.0 data: URI.
 function readPhoto(p: Prop): { photo: Photo } | { skip: PhotoSkip } {
@@ -427,6 +427,7 @@ export function parseVcard(text: string): ParseResult {
     link: 'only a link (not fetched)',
     'not-image': 'not a JPEG, PNG, GIF or WebP image',
     'too-large': 'larger than 2 MB',
+    damaged: 'damaged or cut off',
     empty: 'empty',
   };
   for (const [k, n] of photoSkips) warnings.push(`${n} photo(s) skipped: ${why[k]}`);

@@ -53,6 +53,11 @@ test('photos: a fake image is refused, a real one saved, then removed', async ({
   await page.goto(`/?id=${id}&edit=1`);
   await page.locator('input[name="photo"]').setInputFiles(fake);
   await expect(page.locator('.photo-error')).toContainText('JPEG, PNG, GIF or WebP');
+  // A file cut off after the PNG header is refused too, not saved as a broken image.
+  const cut = join(info.outputDir, 'cut.png');
+  writeFileSync(cut, PNG.subarray(0, 40));
+  await page.locator('input[name="photo"]').setInputFiles(cut);
+  await expect(page.locator('.photo-error')).toContainText('damaged or cut off');
   await page.locator('input[name="photo"]').setInputFiles(real);
   await expect(page.locator('.photo-picker img')).toBeVisible();
   await page.locator('.btn-done').click();

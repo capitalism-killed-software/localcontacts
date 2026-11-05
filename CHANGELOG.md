@@ -94,3 +94,6 @@ The first public release.
   number however it is typed ("3035550177" and "+1 303 555 0177" find "(303) 555-0177"). The
   export's `--q` is the same search. Names starting with Ø, Ł, Æ and similar letters are filed
   under their plain letter instead of "#".
+- A photo must be a whole image, not just start like one: a file cut off after its first bytes,
+  or another file given an image's signature, is refused with a message (in edit mode and on
+  import) instead of being saved and shown as a broken image.

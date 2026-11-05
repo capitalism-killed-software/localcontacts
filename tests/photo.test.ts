@@ -3,12 +3,16 @@ import { closeDb } from '../src/lib/db';
 import { createContact, getContact, getPhoto, listContacts, setPhoto } from '../src/lib/contacts';
 import { contactToVcard } from '../src/lib/export/vcard';
 import { parseText, planMerge, type Batch, type ExistingRow } from '../src/lib/import';
-import { MAX_PHOTO_BYTES, photoFromBase64, photoFromBytes, photoFromDataUri, sniffImage } from '../src/lib/photo';
+import { isWholeImage, MAX_PHOTO_BYTES, photoFromBase64, photoFromBytes, photoFromDataUri, sniffImage } from '../src/lib/photo';
 import { GET } from '../src/app/api/photo/[id]/route';
 
 // A real 1x1 PNG.
 const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 const PNG = Buffer.from(PNG_B64, 'base64');
+// Real images made by a browser, and a 1x1 GIF.
+const JPEG = Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAwADADASIAAhEBAxEB/8QAGgAAAgMBAQAAAAAAAAAAAAAAAAMEBQYBAv/EACgQAAIBAwEHBAMAAAAAAAAAAAECAAMREgQFFTFBU6LREyFScTJhgf/EABgBAAMBAQAAAAAAAAAAAAAAAAIDBAEF/8QAHREAAwACAgMAAAAAAAAAAAAAAAERAhQSEyExYf/aAAwDAQACEQMRAD8A2ucM4jOdDEmw4mWQnHZwzkujpERQXGTc78oVtIjqSgxblbnJdnDlB/RlKRM4ZxJYg2PETmcqggRnPVOrhUVjyIMj5wzmtUymmVgyhlNwRcGDMEUsxsALkzO09rNoxia6KPi5EKm1m1gxFdGHxQic/Ty5e/Bbs4z6MqVc6jMOZJnnOJzhnOglCKiM5U7R2o+ZoadsQPZnHG/6k2o7em2H5WNvuUu79V0u4eYxIBsjEkm5NyYAkG4NiJI3fqul3DzDd+q6XcPMMAnbO2o+YoahsgfZXPH+y2zmc3fqul3DzLqm7emufs1hf7gNBpn/2Q==', 'base64');
+const WEBP = Buffer.from('UklGRhQCAABXRUJQVlA4WAoAAAAwAAAAAQAAAQAASUNDUMgBAAAAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADZBTFBIBQAAAAD/AAAAAFZQOCAYAAAAMAEAnQEqAgACAAFAJiWkAANwAP79NmgA', 'base64');
+const GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
 
 beforeAll(() => {
   process.env.CONTACTS_DB_PATH = ':memory:';
@@ -111,5 +115,35 @@ describe('storing and serving photos', () => {
     expect(getPhoto(c.id)).toBeNull();
     const gone = await GET(new Request('http://t/api/photo/1'), { params: Promise.resolve({ id: String(c.id) }) });
     expect(gone.status).toBe(404);
+  });
+});
+
+describe('whole images only', () => {
+  it('accepts complete JPEG, PNG, GIF and WebP files', () => {
+    for (const [type, b] of [['image/jpeg', JPEG], ['image/png', PNG], ['image/gif', GIF], ['image/webp', WEBP]] as const) {
+      expect(sniffImage(b), type).toBe(type);
+      expect(isWholeImage(type, b), type).toBe(true);
+      expect('photo' in photoFromBytes(b), type).toBe(true);
+    }
+    // Zero padding after the end does no harm.
+    expect(isWholeImage('image/jpeg', Buffer.concat([JPEG, Buffer.alloc(16)]))).toBe(true);
+  });
+
+  it('refuses a signature alone, a cut-off file, and a file dressed up as an image', () => {
+    const cases: Array<[string, Buffer]> = [
+      ['png signature only', PNG.subarray(0, 8)],
+      ['png cut at 40 bytes', PNG.subarray(0, 40)],
+      ['jpeg cut in half', JPEG.subarray(0, Math.floor(JPEG.length / 2))],
+      ['gif header then html', Buffer.from('GIF89a<html><script>alert(1)</script></html>')],
+      ['webp cut short', WEBP.subarray(0, WEBP.length - 20)],
+    ];
+    for (const [label, b] of cases) expect(photoFromBytes(b), label).toEqual({ error: 'damaged' });
+  });
+
+  it('skips a damaged photo in a vCard and says why', () => {
+    const card = (line: string) => `BEGIN:VCARD\nVERSION:3.0\nFN:Ada Lovelace\n${line}\nEND:VCARD\n`;
+    const r = parseText(card(`PHOTO;ENCODING=b;TYPE=JPEG:${JPEG.subarray(0, 114).toString('base64')}`), 'vcard');
+    expect(r.contacts[0].photo).toBeNull();
+    expect(r.warnings.join(' ')).toMatch(/1 photo\(s\) skipped: damaged or cut off/);
   });
 });

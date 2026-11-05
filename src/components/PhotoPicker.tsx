@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import PhotoImg from './PhotoImg';
 import { Bust } from './Silhouette';
-import { sniffImage } from '@/lib/photo';
+import { isWholeImage, sniffImage } from '@/lib/photo';
 
 const MAX = 2 * 1024 * 1024;
 const TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -33,6 +33,12 @@ export default function PhotoPicker({ current }: { current: string | null }) {
     }
     if (file.size > MAX) {
       setError('That image is larger than 2 MB.');
+      if (input.current) input.current.value = '';
+      return;
+    }
+    const type = sniffImage(head);
+    if (type && !isWholeImage(type, new Uint8Array(await file.arrayBuffer()))) {
+      setError('That image is damaged or cut off.');
       if (input.current) input.current.value = '';
       return;
     }
