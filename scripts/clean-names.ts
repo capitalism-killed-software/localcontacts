@@ -1,116 +1,87 @@
 /**
  * Tidy contacts whose display name is an email address or junk (a side effect of
  * Google/iCloud exports). Strategy, in order of preference:
- *   1. Strip a "Real Name (email@x.com)" wrapper -> "Real Name".
- *   2. Strip a "Name @ Company" suffix -> "Name".
- *   3. Derive "First Last" from a first.last@ / first_last@ email local part.
+ *   1. Strip a "Real Name (email@x.com)" or "Real Name" <email@x.com> wrapper -> "Real Name".
+ *   2. Strip a "Name @ Company" suffix -> "Name", when the card has no company yet
+ *      (it gets that one) or the same company.
+ *   3. Derive "First Last" from a first.last@ / first_last@ address.
  *   4. Otherwise fall back to the bare email address (cleaner than the wrapper).
  *
- * A name is only changed when we can produce something strictly better, and the
- * email/phone/company fields are never touched.
+ * A name is only changed when we can produce something strictly better, and nothing
+ * is lost: an address that appears only in the name is added to the card's emails.
+ * A backup of the database is saved to data/backups/ before writing.
  *
  * Usage:
- *   npm run clean:names            # dry run — prints proposed changes only
+ *   npm run clean:names            # dry run: prints proposed changes only
  *   npm run clean:names -- --apply # write the changes
  */
 import { getDb } from '../src/lib/db';
+import { emailLike, proposeNameFix, type NameFix, type NameRow } from '../src/lib/clean-names';
+import { backupDatabase } from '../src/lib/import/run';
 
-const APPLY = process.argv.includes('--apply');
-
-// Role / shared mailboxes that should NOT become a person's name.
-const ROLE = new Set([
-  'sales', 'support', 'info', 'admin', 'customercare', 'upgrade', 'apply',
-  'hello', 'contact', 'contactus', 'team', 'noreply', 'no-reply', 'office',
-  'mail', 'billing', 'help', 'careers', 'jobs', 'newsletter',
-]);
-
-const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
-
-const emailLike = (s: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-
-// "first.last@x" / "first_last@x" -> "First Last"; null when it isn't a
-// confident person name (single token, digits, role mailbox, initials).
-function deriveFromEmail(email: string | null): string | null {
-  if (!email) return null;
-  const local = email.split('@')[0].toLowerCase();
-  if (ROLE.has(local)) return null;
-  if (/\d/.test(local)) return null;
-  const parts = local.split(/[._-]+/).filter(Boolean);
-  if (parts.length >= 2 && parts.every((p) => /^[a-z]+$/.test(p) && p.length >= 2)) {
-    return parts.map(cap).join(' ');
-  }
-  return null;
+const USAGE = 'Usage: npm run clean:names [-- --apply]';
+const args = process.argv.slice(2);
+if (args.includes('--help') || args.includes('-h')) {
+  console.log(USAGE);
+  process.exit(0);
 }
-
-// Returns a better name, or null to leave the row alone.
-function proposeName(name: string, email: string | null): string | null {
-  const isNoName = name === '(no name)';
-
-  let pre = name;
-  // Remove balanced "(...)" groups but keep the text around them, so
-  // "Ada (@countess) Lovelace" -> "Ada Lovelace" (not just "Ada").
-  pre = pre.replace(/\([^)]*\)/g, ' ');
-  // An unclosed "(" (a truncated email) — drop from it onward.
-  const openParen = pre.indexOf('(');
-  if (openParen >= 0) pre = pre.slice(0, openParen);
-  // A "Name @ Company" suffix with no parens — keep the part before " @ ".
-  const at = pre.indexOf(' @ ');
-  if (at >= 0) pre = pre.slice(0, at);
-  pre = pre.trim().replace(/^['"]+|['"]+$/g, '').trim();
-  // Collapse an exact "X X" duplication ("a@b a@b" -> "a@b").
-  const dup = pre.match(/^(.+?)\s+\1$/);
-  if (dup) pre = dup[1];
-  pre = pre.replace(/\s+/g, ' ').trim();
-
-  let proposed: string | null;
-  if (isNoName || pre === '' || emailLike(pre)) {
-    proposed = deriveFromEmail(email) ?? email ?? (emailLike(pre) ? pre : null);
-  } else {
-    proposed = pre; // a real name survived after stripping the wrapper
-  }
-
-  if (!proposed || proposed === name) return null;
-  return proposed;
+const unknown = args.filter((a) => a !== '--apply');
+if (unknown.length) {
+  console.error(`Unknown option ${unknown[0]}.\n${USAGE}`);
+  process.exit(1);
 }
+const APPLY = args.includes('--apply');
 
 function main() {
   const db = getDb();
   const rows = db
     .prepare(
-      `SELECT id, full_name, email FROM contacts
+      `SELECT id, full_name, email, alt_emails, company FROM contacts
        WHERE full_name LIKE '%@%' OR full_name = '(no name)'
        ORDER BY full_name`
     )
-    .all() as Array<{ id: number; full_name: string; email: string | null }>;
+    .all() as Array<NameRow & { id: number }>;
 
-  const changes: Array<{ id: number; from: string; to: string; derived: boolean }> = [];
-  for (const r of rows) {
-    const to = proposeName(r.full_name, r.email);
-    if (to) {
-      changes.push({ id: r.id, from: r.full_name, to, derived: !emailLike(to) });
-    }
+  const changes: Array<{ row: NameRow & { id: number }; fix: NameFix }> = [];
+  for (const row of rows) {
+    const fix = proposeNameFix(row);
+    if (fix) changes.push({ row, fix });
   }
 
+  const derived = changes.filter((c) => !emailLike(c.fix.name)).length;
   console.log(`Candidates (email/junk names): ${rows.length}`);
   console.log(`Proposed changes             : ${changes.length}`);
-  console.log(`  → real name derived        : ${changes.filter((c) => c.derived).length}`);
-  console.log(`  → cleaned to bare email    : ${changes.filter((c) => !c.derived).length}`);
+  console.log(`  → real name derived        : ${derived}`);
+  console.log(`  → cleaned to bare email    : ${changes.length - derived}`);
   console.log(`Unchanged (already clean-ish): ${rows.length - changes.length}`);
   console.log('');
-  for (const c of changes) {
-    const tag = c.derived ? 'NAME ' : 'email';
-    console.log(`  [${tag}] "${c.from}"  ->  "${c.to}"`);
+  for (const { row, fix } of changes) {
+    const tag = emailLike(fix.name) ? 'email' : 'NAME ';
+    const extra = [
+      fix.addEmails.length ? `keeps ${fix.addEmails.join(', ')} as an email` : '',
+      fix.company ? `company: ${fix.company}` : '',
+    ].filter(Boolean);
+    console.log(`  [${tag}] "${row.full_name}"  ->  "${fix.name}"${extra.length ? `  (${extra.join('; ')})` : ''}`);
   }
 
   if (!APPLY) {
     console.log('\n(dry run — re-run with --apply to write these changes)');
     return;
   }
+  if (changes.length === 0) return;
 
-  const upd = db.prepare(`UPDATE contacts SET full_name = ?, updated_at = datetime('now') WHERE id = ?`);
+  const backup = backupDatabase();
+  const upd = db.prepare(
+    `UPDATE contacts SET full_name = ?, email = ?, alt_emails = ?, company = ?, updated_at = datetime('now') WHERE id = ?`
+  );
   db.exec('BEGIN');
   try {
-    for (const c of changes) upd.run(c.to, c.id);
+    for (const { row, fix } of changes) {
+      const emails = [row.email, ...(row.alt_emails ?? '').split('\n'), ...fix.addEmails]
+        .map((e) => (e ?? '').trim())
+        .filter(Boolean);
+      upd.run(fix.name, emails[0] ?? null, emails.slice(1).join('\n') || null, row.company ?? fix.company, row.id);
+    }
     db.exec('COMMIT');
   } catch (err) {
     db.exec('ROLLBACK');
@@ -118,6 +89,7 @@ function main() {
   }
   db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
   console.log(`\nApplied ${changes.length} updates.`);
+  if (backup) console.log(`Backup saved first: ${backup}`);
 }
 
 main();

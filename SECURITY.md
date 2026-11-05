@@ -24,8 +24,9 @@ home server you control. Its safety comes from not being reachable by anyone els
   clickable only if they are web, mail or phone links, and photos are accepted only when their
   bytes are a JPEG, PNG, GIF or WebP image of at most 2 MB. Photos are served with
   `nosniff` and a restrictive content policy.
-- **Backups before imports.** Every import first saves a copy of the database to
-  `data/backups/`.
+- **Backups before changes in bulk.** Every import that adds or changes a card, and the
+  clean-up scripts (`clean:names`, `merge:dupes`, `classify:industry`), first save a copy of the
+  database to `data/backups/` next to it.
 
 ## What you need to do
 

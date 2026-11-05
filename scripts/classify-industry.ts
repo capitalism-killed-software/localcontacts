@@ -12,8 +12,20 @@
  * Venture Capital) before broad ones (Finance, Software).
  */
 import { getDb } from '../src/lib/db';
+import { backupDatabase } from '../src/lib/import/run';
 
-const APPLY = process.argv.includes('--apply');
+const USAGE = 'Usage: npm run classify:industry [-- --apply]';
+const args = process.argv.slice(2);
+if (args.includes('--help') || args.includes('-h')) {
+  console.log(USAGE);
+  process.exit(0);
+}
+const unknown = args.filter((a) => a !== '--apply');
+if (unknown.length) {
+  console.error(`Unknown option ${unknown[0]}.\n${USAGE}`);
+  process.exit(1);
+}
+const APPLY = args.includes('--apply');
 
 const RULES: Array<{ industry: string; test: RegExp }> = [
   { industry: 'Crypto / Blockchain', test: /\b(crypto|blockchain|bitcoin|web3|defi|chainalysis|coinbase|ethereum|stablecoin|\bnft\b)\b/ },
@@ -72,6 +84,8 @@ function main() {
     return;
   }
 
+  if (updates.length === 0) return;
+  const backup = backupDatabase();
   const upd = db.prepare(
     `UPDATE contacts SET industry = ?, updated_at = datetime('now') WHERE id = ? AND industry IS NULL`
   );
@@ -85,6 +99,7 @@ function main() {
   }
   db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
   console.log(`\nApplied ${classified} industry classifications.`);
+  if (backup) console.log(`Backup saved first: ${backup}`);
 }
 
 main();

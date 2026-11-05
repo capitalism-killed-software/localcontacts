@@ -64,3 +64,8 @@ The first public release.
   Outlook often write Windows-1252, vCards may name a `CHARSET`) is decoded instead of becoming
   "�", with a note in the summary, and a vCard line folded in the middle of a character is put
   back together.
+- `npm run clean:names` no longer loses data: an address that appears only in a name is kept as
+  an email, a name is never replaced by a different address, "Ann @ Acme" moves Acme into an
+  empty company field (or is left alone when the card names another company), and quoted
+  `"Name" <address>` forms are tidied. It and `classify:industry` save a backup first, answer
+  `--help` and refuse unknown options.

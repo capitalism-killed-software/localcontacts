@@ -152,7 +152,8 @@ home server.
 
 ## Cleanup scripts
 
-All three are dry-run by default; add `--apply` to write. To merge three cards into one, name the
+All three are dry-run by default; add `--apply` to write, which saves a backup of the database to
+`data/backups/` first. To merge three cards into one, name the
 kept card in each pair (`12:34 12:35`); chains like `12:34 34:56` are refused.
 
 ```bash
