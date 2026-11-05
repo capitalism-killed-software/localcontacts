@@ -5,6 +5,7 @@ import CardEdit, { CARD_FORM_ID } from './CardEdit';
 import CardView from './CardView';
 import DeleteButton from './DeleteButton';
 import BackupsPanel, { type BackupRow, type UndoImport } from './BackupsPanel';
+import ExportPanel from './ExportPanel';
 import ImportPanel from './ImportPanel';
 import Silhouette from './Silhouette';
 
@@ -21,6 +22,7 @@ export default function CardPane({
   sampleCount,
   loadSample,
   backups,
+  exporting,
   contact,
   listHref,
   viewHref,
@@ -35,6 +37,7 @@ export default function CardPane({
   sampleCount: number;
   loadSample: Action;
   backups: { rows: BackupRow[]; undo: UndoImport | null; total: string; folder: string | null } | null;
+  exporting: { scope: string; count: number; total: number; qs: string; allHref: string | null } | null;
   contact: Contact | null;
   listHref: string;
   viewHref: string;
@@ -89,6 +92,14 @@ export default function CardPane({
       break;
     case 'import':
       body = <ImportPanel doneHref={listHref} backupsHref={backupsHref} sampleCount={sampleCount} />;
+      footer = (
+        <Link href={listHref} scroll={false} prefetch={false} className="btn">
+          Close
+        </Link>
+      );
+      break;
+    case 'export':
+      body = exporting && <ExportPanel {...exporting} />;
       footer = (
         <Link href={listHref} scroll={false} prefetch={false} className="btn">
           Close

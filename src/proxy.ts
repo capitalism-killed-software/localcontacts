@@ -1,11 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { isAllowedHost, isWriteFromApp } from './lib/hosts';
+import { isAllowedHost, isReadFromApp, isWriteFromApp } from './lib/hosts';
 import { MAX_IMPORT_BODY, TOO_LARGE_MESSAGE } from './lib/import/limits';
 
 // Runs before every page, action and API route. See src/lib/hosts.ts.
 // - Requests addressed to a host name this app doesn't know are refused (DNS rebinding).
 // - Writes are refused unless they come from the app's own pages (another site open
 //   in the browser must not change the book).
+// - Reads of the API (exports, cards, photos, the names list) are refused when the
+//   browser says another site, or another app on this computer, asked for them.
 // - An import whose Content-Length is over the limit is refused before the route
 //   parses it (Next.js has buffered up to its own 110 MB cap by then).
 
@@ -23,6 +25,9 @@ export function proxy(request: NextRequest) {
       `localcontacts does not answer requests for "${host ?? ''}".\n` +
         'If this is how you reach it, add the name to CONTACTS_ALLOWED_HOSTS (see docs/DEPLOY.md).\n'
     );
+  }
+  if (!WRITES.has(request.method) && request.nextUrl.pathname.startsWith('/api/') && !isReadFromApp(request.headers)) {
+    return text(403, 'localcontacts only sends contacts to its own pages.\n');
   }
   if (WRITES.has(request.method)) {
     if (!isWriteFromApp(request.headers, env)) return text(403, 'localcontacts only accepts changes from its own pages.\n');

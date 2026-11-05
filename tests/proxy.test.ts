@@ -23,6 +23,16 @@ describe('proxy', () => {
     expect(passes(send('/', { method: 'POST', headers: { ...action, origin: 'http://localhost:3000' } }))).toBe(true);
   });
 
+  it('refuses reads of the API from other sites', () => {
+    for (const path of ['/api/export?format=csv', '/api/vcard/1', '/api/contacts', '/api/photo/1']) {
+      expect(send(path, { headers: { 'sec-fetch-site': 'cross-site' } }).status, path).toBe(403);
+      expect(send(path, { headers: { 'sec-fetch-site': 'same-site' } }).status, path).toBe(403);
+      expect(passes(send(path, { headers: { 'sec-fetch-site': 'same-origin' } })), path).toBe(true);
+    }
+    // Pages may still be opened from a link on another site.
+    expect(passes(send('/', { headers: { 'sec-fetch-site': 'cross-site' } }))).toBe(true);
+  });
+
   it('refuses an import over the limit before reading its body', async () => {
     const res = send('/api/import', { method: 'POST', headers: { origin: 'http://localhost:3000', 'content-length': String(2 * 1024 ** 3) } });
     expect(res.status).toBe(413);

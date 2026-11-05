@@ -17,6 +17,7 @@ import { buildGroups, type ContextOverride } from '@/lib/groups';
 import { sampleCount } from '@/lib/sample';
 import { backupsDir, describeBackup, formatWhen, lastImport, listBackups } from '@/lib/backups';
 import { fileSize } from '@/lib/format';
+import { bookRows } from '@/lib/export/book';
 import type { BackupRow, UndoImport } from '@/components/BackupsPanel';
 import { bookHref, contextQs } from '@/lib/urls';
 
@@ -39,6 +40,7 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
   const selId = isNew || sheet ? null : id;
   const importHref = bookHref(qs, { sheet: 'import' });
   const backupsHref = bookHref(qs, { sheet: 'backups' });
+  const exportHref = bookHref(qs, { sheet: 'export' });
   const hrefWith = (over: ContextOverride & { sort?: string }) =>
     bookHref(contextQs({ ...context, ...over }), { id: selId });
 
@@ -60,6 +62,19 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
   // An empty book opens on the welcome, also on a phone.
   const view = isNew || sheet || id || cardMode === 'welcome' ? 'card' : 'list';
   const samples = sampleCount();
+
+  // What the export sheet would export: the group and search the book shows.
+  let exporting: { scope: string; count: number; total: number; qs: string; allHref: string | null } | null = null;
+  if (sheet === 'export') {
+    const group = groups.sections.flatMap((s) => s.items).find((i) => i.active)?.label ?? groups.all.label;
+    exporting = {
+      scope: q ? `${group}, matching “${q}”` : group,
+      count: bookRows(new URLSearchParams(qs)).length,
+      total: stats.total,
+      qs,
+      allHref: qs ? bookHref('', { sheet: 'export' }) : null,
+    };
+  }
 
   // The backups sheet's list, read only when it is open.
   let backups: { rows: BackupRow[]; undo: UndoImport | null; total: string; folder: string | null } | null = null;
@@ -83,7 +98,10 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
     ? groups.all.key
     : groups.sections.flatMap((s) => s.items).find((i) => i.active)?.key ?? groups.all.key;
   // The other sheets, from the "More" menu under the groups (and, on a phone, the groups menu).
-  const sheetLinks = [{ value: 'backups', label: 'Backups…', href: backupsHref }];
+  const sheetLinks = [
+    { value: 'export', label: 'Export…', href: exportHref },
+    { value: 'backups', label: 'Backups…', href: backupsHref },
+  ];
   const moreMenu = <NavSelect className="sort-select more-select" ariaLabel="More" placeholder="More" value="" options={sheetLinks} />;
   const groupsSelect = (
     <NavSelect
@@ -132,6 +150,7 @@ export default async function HomePage(props: { searchParams: Promise<Params> })
           sampleCount={samples}
           loadSample={loadSampleAction.bind(null, qs)}
           backups={backups}
+          exporting={exporting}
           contact={selected}
           listHref={bookHref(qs)}
           viewHref={bookHref(qs, { id })}

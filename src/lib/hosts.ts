@@ -61,3 +61,15 @@ export function isWriteFromApp(headers: HeaderSource, env: string | undefined): 
   const forwarded = headers.get('x-forwarded-host')?.trim().toLowerCase();
   return !!forwarded && originHost === forwarded && isAllowedHost(forwarded, env);
 }
+
+/**
+ * Whether a read of the API (an export, a card, a photo, the names list) comes
+ * from this app's own pages. Browsers say where a request comes from in
+ * Sec-Fetch-Site: another site ("cross-site"), or another app on this computer
+ * ("same-site": a different port on localhost), is refused. A typed address
+ * ("none") and scripts on this machine (no header) are not.
+ */
+export function isReadFromApp(headers: HeaderSource): boolean {
+  const site = headers.get('sec-fetch-site');
+  return site === null || site === 'same-origin' || site === 'none';
+}

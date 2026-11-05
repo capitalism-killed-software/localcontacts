@@ -1,5 +1,6 @@
 import type { Contact } from '../contacts';
 import { NO_NAME } from '../constants';
+import { guardCell } from '../csv-guard';
 
 // CSV with one column per value (Email, Email 2, …) so it reads well in a
 // spreadsheet and our own importer reads it back as a generic CSV. RFC 4180
@@ -16,7 +17,8 @@ export function csvCell(v: string | null | undefined): string {
 const numbered = (base: string, n: number): string[] =>
   Array.from({ length: n }, (_, i) => (i === 0 ? base : `${base} ${i + 1}`));
 
-export function contactsToCsv(list: Contact[], opts: { bom?: boolean } = {}): string {
+export function contactsToCsv(list: Contact[], opts: { bom?: boolean; excel?: boolean } = {}): string {
+  const excel = !!opts.excel;
   const rows = list.map((c) => ({
     c,
     emails: [c.email, ...lines(c.alt_emails)].filter((x): x is string => !!x),
@@ -59,7 +61,7 @@ export function contactsToCsv(list: Contact[], opts: { bom?: boolean } = {}): st
       c.industry,
       c.sources,
     ]
-      .map(csvCell)
+      .map((v) => csvCell(guardCell(v, excel)))
       .join(',')
   );
   return (opts.bom ? '﻿' : '') + [header.map(csvCell).join(','), ...body].join('\r\n') + '\r\n';

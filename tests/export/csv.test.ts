@@ -71,3 +71,50 @@ describe('contactsToCsv', () => {
     expect(contactsToCsv([]).split('\r\n')[0]).toBe('ID,Name,Email,Phone,Company,Title,URL,Notes,Connected On,Last Contacted,Industry,Sources');
   });
 });
+
+describe('Excel-safe CSV', () => {
+  const tricky = c({
+    full_name: '=HYPERLINK("http://x.example","click")',
+    phone: '+1 202 555 0101',
+    company: '-Minus Co',
+    title: '@handle',
+    notes: "'=already quoted",
+    urls: "'plain apostrophe",
+    sources: 'google',
+  });
+
+  it('puts a quote before every cell a spreadsheet would run, and our importer takes it off again', () => {
+    const text = contactsToCsv([tricky], { excel: true });
+    const row = text.split('\r\n')[1];
+    expect(row).toContain(`"'=HYPERLINK(""http://x.example"",""click"")"`);
+    expect(row).toContain(",'+1 202 555 0101,");
+    expect(row).toContain(",'-Minus Co,");
+    expect(row).toContain(",'@handle,");
+    expect(row).toContain(",''=already quoted,");
+    expect(row).toContain(",'plain apostrophe,");
+    const back = parseText(text, 'generic-csv').contacts[0];
+    expect(back).toMatchObject({
+      name: tricky.full_name,
+      phones: ['+1 202 555 0101'],
+      org: '-Minus Co',
+      title: '@handle',
+      notes: "'=already quoted",
+      urls: ["'plain apostrophe"],
+    });
+  });
+
+  it('without it, writes values as they are (a quote is added only where one already leads a formula sign)', () => {
+    const text = contactsToCsv([tricky]);
+    const row = text.split('\r\n')[1];
+    expect(row).toContain(',"=HYPERLINK(');
+    expect(row).toContain(',+1 202 555 0101,');
+    expect(row).toContain(",''=already quoted,");
+    expect(parseText(text, 'generic-csv').contacts[0]).toMatchObject({ name: tricky.full_name, notes: "'=already quoted", phones: ['+1 202 555 0101'] });
+  });
+
+  it("leaves quotes alone in someone else's CSV", () => {
+    const back = parseText("Name,Email\n'=Not ours,x@example.com\n", 'generic-csv').contacts[0];
+    expect(back.name).toBe("'=Not ours");
+  });
+});
+

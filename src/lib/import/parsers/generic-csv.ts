@@ -2,6 +2,7 @@ import type { IncomingContact, ParseResult } from '../types';
 import { clean, cleanIndustry, dedupeEmails, dedupePhones, dedupeStrings, defaultCountry, isoDate, joinName, NO_NAME } from '../normalize';
 import { headersOf, readCsv, type Row } from './csv';
 import { isTag } from '../tags';
+import { unguardCell } from '../../csv-guard';
 
 // Any CSV with a header row: a CRM export, a spreadsheet, another contacts app.
 // Columns are guessed from common header names; --map overrides per field.
@@ -87,13 +88,17 @@ export function parseGenericCsv(text: string, map: FieldMap = {}): ParseResult {
   const sourcesCol = headers.includes('Sources') && cols.uid.length ? 'Sources' : null;
   let ownRows = 0;
 
-  for (const r of rows) {
+  for (const raw of rows) {
+    // Our own export's rows (an id like "localcontacts-12", a Sources column) may
+    // have a ' before a value a spreadsheet would run; it comes off here.
+    const rawUid = values(raw, cols.uid)[0] ?? null;
+    const own = !!sourcesCol && !!rawUid && /^localcontacts-\d+$/.test(rawUid);
+    const r: Row = own ? Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, typeof v === 'string' ? unguardCell(v) : v])) : raw;
     const name =
       values(r, cols.full_name)[0] ??
       joinName(values(r, cols.first_name)[0], values(r, cols.last_name)[0]);
     const org = values(r, cols.company)[0] ?? null;
-    const uid = values(r, cols.uid)[0] ?? null;
-    const own = !!sourcesCol && !!uid && /^localcontacts-\d+$/.test(uid);
+    const uid = rawUid;
     if (own) ownRows++;
     const emails = dedupeEmails(values(r, cols.email));
     const phones = dedupePhones(values(r, cols.phone), country);

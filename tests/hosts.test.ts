@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { safeHref } from '../src/components/CardView';
-import { allowedHosts, hostName, isAllowedHost, isWriteFromApp } from '../src/lib/hosts';
+import { allowedHosts, hostName, isAllowedHost, isReadFromApp, isWriteFromApp } from '../src/lib/hosts';
 
 describe('hostName', () => {
   it('drops the port and handles IPv6', () => {
@@ -77,3 +77,15 @@ describe('safeHref', () => {
     expect(safeHref('not a link')).toBeNull();
   });
 });
+
+describe('isReadFromApp', () => {
+  const h = (o: Record<string, string>) => new Headers(o);
+  it('accepts the app’s own pages, a typed address and scripts; refuses other sites, other local apps too', () => {
+    expect(isReadFromApp(h({ 'sec-fetch-site': 'same-origin' }))).toBe(true);
+    expect(isReadFromApp(h({ 'sec-fetch-site': 'none' }))).toBe(true);
+    expect(isReadFromApp(h({}))).toBe(true);
+    expect(isReadFromApp(h({ 'sec-fetch-site': 'cross-site' }))).toBe(false);
+    expect(isReadFromApp(h({ 'sec-fetch-site': 'same-site' }))).toBe(false);
+  });
+});
+

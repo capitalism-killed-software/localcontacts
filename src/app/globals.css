@@ -816,6 +816,20 @@ body {
     color: #5c4c00;
     font-size: 11px;
   }
+  .export-scope {
+    margin: 0 0 4px;
+  }
+  .export-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 14px 0 0;
+  }
+  .export-choice .btn {
+    flex: none;
+    min-width: 128px;
+    text-align: center;
+  }
   .backup-undo {
     margin: 0 0 14px;
     padding: 8px 10px;

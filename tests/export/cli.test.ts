@@ -88,6 +88,9 @@ describe('export CLI', { timeout: 60_000 }, () => {
     expect(all.out.match(/BEGIN:VCARD/g)).toHaveLength(2);
     const tg = run('scripts/export.ts', db, ['--format=csv', '--source=telegram']);
     expect(tg.out.trim().split('\r\n')).toHaveLength(3);
+    expect(tg.out).toMatch(/,\+1 202 555 01\d\d,/);
+    const excel = run('scripts/export.ts', db, ['--format=csv', '--source=telegram', '--excel']);
+    expect(excel.out).toMatch(/,'\+1 202 555 01\d\d,/);
     const q = run('scripts/export.ts', db, ['--format=csv', '--q=shelley']);
     expect(q.out).toContain('Mary Shelley');
     expect(q.out).not.toContain('Ada Lovelace');

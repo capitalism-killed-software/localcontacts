@@ -122,6 +122,10 @@ restores any backup after saving the book as it is.
 
 ## Export
 
+In the book, **More → Export…** saves what the book shows (everything, the group you are in, or
+your search) as a vCard or a spreadsheet (CSV). Each card also has an **Export vCard** button.
+From the command line:
+
 ```bash
 npm run export -- --format=vcard --out=contacts.vcf     # every contact, vCard 3.0
 npm run export -- --format=csv --source=linkedin        # CSV to stdout, LinkedIn group only
@@ -132,7 +136,12 @@ The filters are the book's: `--q`, `--filter` (e.g. `no_email`), `--source`, `--
 Proton and Android; CSV has one column per value (Email, Email 2, …) and opens in any
 spreadsheet. Both come back through `npm run import` unchanged, groups, industry and dates
 included, and importing one into the book it came from changes nothing; only vCard carries
-photos. Each card in the book also has an **Export vCard** button.
+photos.
+
+The book's CSV is **Excel-safe**: a cell that starts with `=`, `+`, `-` or `@` gets an apostrophe
+in front, so a spreadsheet shows it as text rather than running it as a formula (phone numbers
+starting with `+` included). Importing the file here takes the apostrophe off again. The command
+line writes values exactly as they are unless you add `--excel`.
 
 ## Run it as an app
 
@@ -195,7 +204,8 @@ Next.js 16 and React 19 (App Router, TypeScript), `node:sqlite`, `libphonenumber
 - `src/lib/db.ts`: SQLite connection, schema and migrations
 - `src/lib/contacts.ts`: queries; `names.ts`, `groups.ts`, `urls.ts`: list sorting, the Groups column, the URL model
 - `src/lib/import/`: format detection, one parser per format, phone and email normalisation, the merge engine
-- `src/lib/export/`: vCard and CSV writers
+- `src/lib/export/`: vCard and CSV writers, and `book.ts`, which exports what the book shows (the
+  export sheet's `/api/export` and `npm run export` both use it)
 - `scripts/import.ts`, `scripts/export.ts`: the command-line importer and exporter; `scripts/app/`: launchers and the desktop installer
 - `tests/fixtures/`: fake exports in each platform's real shape
 

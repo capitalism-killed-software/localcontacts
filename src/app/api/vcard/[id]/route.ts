@@ -1,3 +1,4 @@
+import { isReadFromApp } from '@/lib/hosts';
 import { parseId } from '@/lib/ids';
 import { getContact, getPhoto } from '@/lib/contacts';
 import { attachmentHeader } from '@/lib/export/filename';
@@ -6,7 +7,8 @@ import { contactToVcard } from '@/lib/export/vcard';
 export const dynamic = 'force-dynamic';
 
 // One card as a .vcf download: the stand-in for Address Book's Share button.
-export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  if (!isReadFromApp(req.headers)) return new Response('localcontacts only sends contacts to its own pages.\n', { status: 403 });
   const { id: raw } = await ctx.params;
   const id = parseId(raw);
   const contact = id ? getContact(id) : null;
