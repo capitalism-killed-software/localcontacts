@@ -127,14 +127,14 @@ export default function NamesList({ version, footerStart }: { version: string; f
       const idle = !t || t === document.body || t === document.documentElement;
 
       // Typing letters with the list focused jumps to the first matching name.
-      if (inList && e.key.length === 1 && (e.key !== ' ' || typed.current.text)) {
+      if ((inList || idle) && e.key.length === 1 && (e.key !== ' ' || typed.current.text)) {
         const { data: d, qs: q } = nav.current;
         if (!d || d.rows.length === 0) return;
         const now = Date.now();
         typed.current = { text: (now - typed.current.at < 800 ? typed.current.text : '') + e.key, at: now };
         const sort = new URLSearchParams(q).get('sort');
         const mode = !sort || sort === 'last' ? 'last' : sort === 'first' ? 'first' : 'other';
-        const i = typeAheadIndex(d.rows.map((r) => r[1]), typed.current.text, mode);
+        const i = typeAheadIndex(d.rows.map((r) => r[1]), typed.current.text, mode, (k) => d.rows[k].length === 3);
         e.preventDefault();
         if (i !== null) router.replace(bookHref(q, { id: d.rows[i][0] }), { scroll: false });
         return;
@@ -184,8 +184,9 @@ export default function NamesList({ version, footerStart }: { version: string; f
           </div>
         );
       } else {
-        const [id, full] = data.rows[entry.index];
-        const n = splitName(full);
+        const row = data.rows[entry.index];
+        const [id, full] = row;
+        const n = splitName(full, row.length === 3);
         const isSel = id === selected;
         items.push(
           <Link
@@ -197,6 +198,13 @@ export default function NamesList({ version, footerStart }: { version: string; f
             aria-current={isSel ? 'true' : undefined}
             tabIndex={-1}
             style={{ top }}
+            // Keep focus on the list, not the row: the row may scroll out of the
+            // drawn window and take the focus (and type-to-jump) with it.
+            onMouseDown={(e) => {
+              if (e.button !== 0) return;
+              e.preventDefault();
+              listRef.current?.focus({ preventScroll: true });
+            }}
           >
             {n.first}
             {n.last && (

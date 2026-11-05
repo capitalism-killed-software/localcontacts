@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { Contact } from '@/lib/contacts';
 import { tagLabel } from '@/lib/groups';
-import { splitName } from '@/lib/names';
+import { isCompanyCard, splitName } from '@/lib/names';
 import CopyButton from './CopyButton';
 import { CardPhoto } from './Silhouette';
 
@@ -25,7 +25,7 @@ export default function CardView({
   contact: Contact;
   editHref: string;
 }) {
-  const { first, last, suffix } = splitName(contact.full_name);
+  const { first, last, suffix } = splitName(contact.full_name, isCompanyCard(contact.full_name, contact.company));
   const emails = [contact.email, ...lines(contact.alt_emails)].filter((x): x is string => !!x);
   const phones = [contact.phone, ...lines(contact.alt_phones)].filter((x): x is string => !!x);
   const urls = lines(contact.urls);

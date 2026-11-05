@@ -1,6 +1,7 @@
 import type { Contact } from '@/lib/contacts';
 import MultiField from './MultiField';
 import PhotoPicker from './PhotoPicker';
+import FormGuard from './FormGuard';
 
 const lines = (v: string | null | undefined): string[] => (v ? v.split('\n').map((s) => s.trim()).filter(Boolean) : []);
 
@@ -22,6 +23,7 @@ export default function CardEdit({
 
   return (
     <form id={CARD_FORM_ID} action={action} className="card card-edit">
+      <FormGuard formId={CARD_FORM_ID} />
       <header className="card-head">
         <PhotoPicker
           current={contact?.photo_type ? `/api/photo/${contact.id}?v=${encodeURIComponent(contact.updated_at)}` : null}
@@ -33,6 +35,8 @@ export default function CardEdit({
             placeholder="Name"
             aria-label="Name"
             required
+            pattern=".*\S.*"
+            title="Enter a name"
             autoFocus
             className="boxed-input boxed-name"
           />

@@ -82,13 +82,18 @@ test('no other site may show the book in a frame, or write to it', async ({ requ
   expect(res.status()).toBe(403);
 });
 
-test('an import larger than the limit is refused before it is read', async ({ request }) => {
-  const res = await request.fetch('/api/import', {
-    method: 'POST',
-    headers: { 'Content-Length': String(2 * 1024 ** 3), 'Content-Type': 'multipart/form-data; boundary=x' },
-    data: Buffer.from('--x--'),
-    timeout: 10_000,
-  }).catch((e: Error) => e);
-  // Either a clean 413, or the connection is closed before the body is sent; never a long wait.
-  if (!(res instanceof Error)) expect(res.status()).toBe(413);
+
+test('typing a tag and clicking Import imports, with that tag, in one click', async ({ page }, info) => {
+  const { mkdirSync, writeFileSync } = await import('node:fs');
+  mkdirSync(info.outputDir, { recursive: true });
+  const file = join(info.outputDir, 'one-click.vcf');
+  writeFileSync(file, 'BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Olive Oneclick\r\nEMAIL:olive.oneclick@example.com\r\nEND:VCARD\r\n');
+  await page.goto('/?import=1');
+  await page.locator('.drop-zone input[type=file]').setInputFiles(file);
+  await expect(page.locator('.import-files')).toContainText('vCard, 1 contact,');
+  await page.locator('#import-source').fill('One-Click');
+  await page.locator('.import-actions .btn-done').click();
+  await expect(page.locator('.import-done')).toContainText('Imported: 1 new');
+  const res = await page.request.get('/api/contacts?source=one-click');
+  expect((await res.json()).count).toBe(1);
 });

@@ -11,15 +11,14 @@ const nextConfig = {
   },
   // No other site may show the book in a frame: a hidden frame under a lure page
   // could turn the user's clicks into edits (clickjacking).
+  // The photo route sends its own, stricter policy (which also forbids framing);
+  // a header set here would replace it, so the CSP rule leaves that route out.
   async headers() {
+    const csp = [{ key: 'Content-Security-Policy', value: "frame-ancestors 'none'" }];
     return [
-      {
-        source: '/:path*',
-        headers: [
-          { key: 'X-Frame-Options', value: 'DENY' },
-          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
-        ],
-      },
+      { source: '/:path*', headers: [{ key: 'X-Frame-Options', value: 'DENY' }] },
+      { source: '/', headers: csp },
+      { source: '/:path((?!api/photo/).+)', headers: csp },
     ];
   },
 };

@@ -85,6 +85,14 @@ describe('contactToVcard', () => {
     expect(foreign.contacts[0].sources).toBeUndefined();
   });
 
+  it('writes a company’s own card as a company, not as a person called "Plumbing"', () => {
+    const text = contactToVcard(c({ full_name: 'Acme Plumbing', company: 'Acme Plumbing' }));
+    expect(text).toContain('N:;;;;\r\n');
+    expect(text).toContain('FN:Acme Plumbing\r\n');
+    expect(text).toContain('X-ABShowAs:COMPANY\r\n');
+    expect(contactToVcard(c({ full_name: 'Paul Plumber', company: 'Acme Plumbing' }))).toContain('N:Plumber;Paul;;;\r\n');
+  });
+
   it('falls back to company, email or phone for a nameless card', () => {
     expect(contactToVcard(c({ full_name: '(no name)', email: 'x@example.com' }))).toContain('FN:x@example.com\r\n');
     expect(contactToVcard(c({ full_name: '(no name)', company: 'Acme', email: 'x@example.com' }))).toContain('FN:Acme\r\n');

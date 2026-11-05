@@ -79,3 +79,22 @@ describe('typeAheadIndex', () => {
     expect(typeAheadIndex(['Acme'], '', 'last')).toBeNull();
   });
 });
+
+describe('company cards', () => {
+  const rows = [
+    { id: 1, full_name: 'Acme Plumbing', company: 'Acme Plumbing' },
+    { id: 2, full_name: 'Paul Plumber', company: 'Acme Plumbing' },
+    { id: 3, full_name: 'Ada Lovelace', company: null },
+  ];
+
+  it('file under their first letter, with no surname, by last and first name', () => {
+    const byLast = sectionize(rows, 'last').map((s) => [s.letter, s.items.map((i) => i.contact.full_name)]);
+    expect(byLast).toEqual([['A', ['Acme Plumbing']], ['L', ['Ada Lovelace']], ['P', ['Paul Plumber']]]);
+    expect(sectionize(rows, 'last')[0].items[0]).toMatchObject({ first: 'Acme Plumbing', last: '' });
+  });
+
+  it('are found by type-to-jump under their whole name', () => {
+    const names = ['Acme Plumbing', 'Ada Lovelace', 'Paul Plumber'];
+    expect(typeAheadIndex(names, 'acme', 'last', (i) => i === 0)).toBe(0);
+  });
+});

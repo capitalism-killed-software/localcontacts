@@ -17,7 +17,15 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Before the first paint: hide the Groups column if it was hidden last time. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "try{if(localStorage.getItem('localcontacts.groups')==='hidden')document.documentElement.dataset.groups='hidden'}catch(e){}",
+          }}
+        />
+      </head>
       <body>
         {children}
         <RegisterSw />

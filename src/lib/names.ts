@@ -1,4 +1,5 @@
 import { NO_NAME } from './constants';
+import { fold } from './fold';
 
 // Contacts.app shows "First Last" with the surname in bold and sorts by
 // surname. We only store one name string, so the surname is the last token,
@@ -8,9 +9,14 @@ const SUFFIX = /^(jr|sr|ii|iii|iv|phd|md|esq|cpa|mba)\.?,?$/i;
 
 export type SplitName = { first: string; last: string; suffix: string };
 
-export function splitName(full: string): SplitName {
+// A company's own card (Apple's "Show as company"): its name is the company,
+// so it has no surname and files under its first letter.
+export const isCompanyCard = (full: string, company: string | null | undefined): boolean =>
+  !!company && !!full.trim() && fold(company.trim()) === fold(full.trim());
+
+export function splitName(full: string, company = false): SplitName {
   const name = full.trim().replace(/\s+/g, ' ');
-  if (!name || name === NO_NAME || name.includes('@')) return { first: name, last: '', suffix: '' };
+  if (!name || name === NO_NAME || name.includes('@') || company) return { first: name, last: '', suffix: '' };
   const tokens = name.split(' ');
   if (tokens.length === 1) return { first: tokens[0], last: '', suffix: '' };
   let lastIdx = tokens.length - 1;
@@ -22,14 +28,13 @@ export function splitName(full: string): SplitName {
   return { first: tokens.slice(0, lastIdx).join(' '), last: tokens[lastIdx], suffix };
 }
 
-import { fold } from './fold';
 
 export type NameSortMode = 'last' | 'first';
 
 // Two-level key: the part that decides the section and the order, then the
 // tiebreaker. Single-token names sort by that token in both modes.
-export function nameSortKey(full: string, mode: NameSortMode): [string, string] {
-  const { first, last } = splitName(full);
+export function nameSortKey(full: string, mode: NameSortMode, company = false): [string, string] {
+  const { first, last } = splitName(full, company);
   if (!last) return [fold(first), ''];
   return mode === 'last' ? [fold(last), fold(first)] : [fold(first), fold(last)];
 }
@@ -44,11 +49,12 @@ export type Section<T> = { letter: string; items: NameRow<T>[] };
 
 // Sort by name and bucket into A…Z sections with '#' last. Stable, so rows
 // that tie keep the order the database returned.
-export function sectionize<T extends { full_name: string }>(contacts: T[], mode: NameSortMode): Section<T>[] {
+export function sectionize<T extends { full_name: string; company?: string | null }>(contacts: T[], mode: NameSortMode): Section<T>[] {
   const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
   const rows = contacts.map((contact, i) => {
-    const key = nameSortKey(contact.full_name, mode);
-    return { contact, key, i, ...splitName(contact.full_name) };
+    const company = isCompanyCard(contact.full_name, contact.company);
+    const key = nameSortKey(contact.full_name, mode, company);
+    return { contact, key, i, ...splitName(contact.full_name, company) };
   });
   rows.sort((a, b) => collator.compare(a.key[0], b.key[0]) || collator.compare(a.key[1], b.key[1]) || a.i - b.i);
   const sections: Section<T>[] = [];
@@ -75,13 +81,18 @@ export function sectionize<T extends { full_name: string }>(contacts: T[], mode:
 // with what was typed, or failing that the first one after it, so typing
 // "ma" lands at the start of the Ms even without a "Ma…". `mode` is the
 // list's sort; for sorts other than by name the whole name is matched.
-export function typeAheadIndex(names: string[], typed: string, mode: NameSortMode | 'other'): number | null {
+export function typeAheadIndex(
+  names: string[],
+  typed: string,
+  mode: NameSortMode | 'other',
+  isCompany: (i: number) => boolean = () => false
+): number | null {
   const want = fold(typed.trim());
   if (!want || names.length === 0) return null;
-  const key = (n: string) => (mode === 'other' ? fold(n) : nameSortKey(n, mode).join(' '));
+  const key = (n: string, i: number) => (mode === 'other' ? fold(n) : nameSortKey(n, mode, isCompany(i)).join(' '));
   let after: number | null = null;
   for (let i = 0; i < names.length; i++) {
-    const k = key(names[i]);
+    const k = key(names[i], i);
     if (k.startsWith(want)) return i;
     if (after === null && mode !== 'other' && k > want) after = i;
   }

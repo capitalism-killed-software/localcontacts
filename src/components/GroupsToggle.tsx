@@ -7,7 +7,8 @@ const KEY = 'localcontacts.groups';
 
 export default function GroupsToggle() {
   const ref = useRef<HTMLButtonElement>(null);
-  const [hidden, setHidden] = useState(false);
+  // null until the saved choice is read, so the column is never shown and then hidden.
+  const [hidden, setHidden] = useState<boolean | null>(null);
 
   useEffect(() => {
     let stored = false;
@@ -20,8 +21,10 @@ export default function GroupsToggle() {
   }, []);
 
   useEffect(() => {
+    if (hidden === null) return;
     const book = ref.current?.closest('.book');
     if (book) book.setAttribute('data-groups', hidden ? 'hidden' : 'shown');
+    document.documentElement.dataset.groups = hidden ? 'hidden' : 'shown';
   }, [hidden]);
 
   const toggle = () => {
@@ -40,7 +43,7 @@ export default function GroupsToggle() {
       type="button"
       className="ribbon"
       onClick={toggle}
-      aria-pressed={!hidden}
+      aria-pressed={hidden !== true}
       aria-label={hidden ? 'Show groups' : 'Hide groups'}
       title={hidden ? 'Show groups' : 'Hide groups'}
     >

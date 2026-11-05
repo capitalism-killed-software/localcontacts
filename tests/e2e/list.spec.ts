@@ -74,3 +74,14 @@ test('typing a name with the list focused jumps to it', async ({ page }) => {
   await page.keyboard.type('turn');
   await expect(selectedName(page)).toContainText('Turn');
 });
+
+test('type-to-jump keeps working after clicking a name and moving far away from it', async ({ page }) => {
+  await openBook(page);
+  await page.locator('.names-canvas .name-row').first().click();
+  await expect(page).toHaveURL(/id=\d+/);
+  const first = currentId(page);
+  await page.keyboard.press('End');
+  await expect.poll(() => currentId(page)).not.toBe(first);
+  await page.keyboard.type('lovel');
+  await expect(selectedName(page)).toContainText('Lovel');
+});

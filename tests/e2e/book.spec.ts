@@ -77,3 +77,21 @@ test('an unknown page shows the book-style not-found sheet', async ({ page }) =>
   await page.getByText('Back to Contacts').click();
   await expect(page.locator('.names-count')).toContainText('card');
 });
+
+test('the search box follows Back and Forward', async ({ page }) => {
+  await openBook(page);
+  await page.locator('.names-canvas .name-row').first().click();
+  await openFirstMatch(page, 'lovelace');
+  await page.locator('.search input').fill('hopper');
+  await expect(page).toHaveURL(/q=hopper/);
+  await page.goBack();
+  await expect(page).toHaveURL(/q=lovelace/);
+  await expect(page.locator('.search input')).toHaveValue('lovelace');
+});
+
+test('hidden groups stay hidden from the first paint', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('localcontacts.groups', 'hidden'));
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  expect(await page.evaluate(() => document.documentElement.dataset.groups)).toBe('hidden');
+  await expect(page.locator('.groups-pane')).toBeHidden();
+});

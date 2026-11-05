@@ -1,6 +1,6 @@
 import type { Contact } from '../contacts';
 import { NO_NAME } from '../constants';
-import { splitName } from '../names';
+import { isCompanyCard, splitName } from '../names';
 import { PHOTO_EXT, type Photo } from '../photo';
 
 // vCard 3.0 (RFC 2426) with RFC 6350 text escaping. Apple Contacts, Google
@@ -62,11 +62,14 @@ function displayName(c: Contact): string {
 
 export function contactToVcard(c: Contact, photo: Photo | null = null): string {
   const out: string[] = ['BEGIN:VCARD', 'VERSION:3.0', 'PRODID:-//localcontacts//EN', `UID:localcontacts-${c.id}`];
-  const real = c.full_name && c.full_name !== NO_NAME && !c.full_name.includes('@');
+  // A company's own card has no person's name to split.
+  const company = isCompanyCard(c.full_name, c.company);
+  const real = c.full_name && c.full_name !== NO_NAME && !c.full_name.includes('@') && !company;
   const { first, last, suffix } = real ? splitName(c.full_name) : { first: '', last: '', suffix: '' };
   out.push(`N:${[last, first, '', '', suffix].map(escapeText).join(';')}`);
   out.push(`FN:${escapeText(displayName(c))}`);
   if (c.company) out.push(`ORG:${escapeText(c.company)}`);
+  if (company) out.push('X-ABShowAs:COMPANY');
   if (c.title) out.push(`TITLE:${escapeText(c.title)}`);
 
   const emails = [c.email, ...lines(c.alt_emails)].filter((x): x is string => !!x);

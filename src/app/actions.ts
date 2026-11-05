@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createContact, updateContact, deleteContact, setPhoto, type ContactInput } from '@/lib/contacts';
 import { photoFromBytes } from '@/lib/photo';
+import { cleanIndustry, dedupeEmails, dedupePhones, defaultCountry } from '@/lib/import/normalize';
 import { bookHref, contextQs } from '@/lib/urls';
 
 // Emails, phones and links come in as repeated fields in DOM order; the
@@ -18,14 +19,15 @@ function readForm(fd: FormData): ContactInput {
       .filter((v): v is string => typeof v === 'string')
       .map((v) => v.trim())
       .filter(Boolean);
-  const emails = list('email');
-  const phones = list('phone');
+  // The same address in another case, or the same number in another format, is kept once.
+  const emails = dedupeEmails(list('email'));
+  const phones = dedupePhones(list('phone'), defaultCountry());
   const urls = list('url');
   return {
     full_name: (s('full_name') ?? '').trim(),
     title: s('title'),
     company: s('company'),
-    industry: s('industry'),
+    industry: cleanIndustry(s('industry')),
     email: emails[0] ?? null,
     alt_emails: emails.slice(1).join('\n') || null,
     phone: phones[0] ?? null,

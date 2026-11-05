@@ -34,10 +34,14 @@ describe('proxy', () => {
 describe('frame protection', () => {
   it('tells browsers not to show any page inside another site', async () => {
     const rules = await nextConfig.headers!();
-    const all = rules.find((r) => r.source === '/:path*')!;
-    expect(all.headers).toEqual(expect.arrayContaining([
-      { key: 'X-Frame-Options', value: 'DENY' },
-      { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
-    ]));
+    expect(rules.find((r) => r.source === '/:path*')!.headers).toContainEqual({ key: 'X-Frame-Options', value: 'DENY' });
+    const csp = { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" };
+    expect(rules.find((r) => r.source === '/')!.headers).toContainEqual(csp);
+    // Every other path except the photo route, which keeps its own stricter policy.
+    const rest = rules.find((r) => r.source.includes('api/photo'))!;
+    expect(rest.headers).toContainEqual(csp);
+    const re = new RegExp(`^/${rest.source.match(/\((\(\?!.*\)\.\+)\)$/)![1]}$`);
+    expect(re.test('/api/contacts')).toBe(true);
+    expect(re.test('/api/photo/12')).toBe(false);
   });
 });

@@ -167,10 +167,12 @@ body {
     grid-template-columns: 160px 1fr;
     padding-left: 12px;
   }
-  .book[data-groups='hidden'] .page-left {
+  .book[data-groups='hidden'] .page-left,
+  html[data-groups='hidden'] .book .page-left {
     grid-template-columns: 1fr;
   }
-  .book[data-groups='hidden'] .groups-pane {
+  .book[data-groups='hidden'] .groups-pane,
+  html[data-groups='hidden'] .book .groups-pane {
     display: none;
   }
   .page-right {

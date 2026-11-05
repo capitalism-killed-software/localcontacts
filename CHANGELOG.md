@@ -97,3 +97,10 @@ The first public release.
 - A photo must be a whole image, not just start like one: a file cut off after its first bytes,
   or another file given an image's signature, is refused with a message (in edit mode and on
   import) instead of being saved and shown as a broken image.
+- The book: Done works once, so a double-click no longer makes two cards; leaving a card with
+  unsaved changes (a name, a group, the sort menu, Import…) asks first, and Cancel still just
+  cancels; a name of only spaces, or a phone without digits, is caught in the form instead of
+  showing the error page; the same email in another case or the same number in another format
+  is saved once. Type-to-jump keeps working after clicking a name in a long list. The search box
+  follows Back and Forward. Hidden groups no longer flash on each load. A company's own card
+  ("Acme Plumbing") is filed under its first letter and exported as a company.

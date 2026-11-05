@@ -42,6 +42,9 @@ export default function MultiField({
             value={r.value}
             placeholder={placeholder}
             onChange={(e) => change(r.key, e.target.value)}
+            // A phone number needs digits; "call me maybe" is a note.
+            pattern={type === 'tel' ? '.*[0-9].*' : undefined}
+            title={type === 'tel' ? 'A phone number needs digits' : undefined}
             className="edit-input"
             autoComplete="off"
           />

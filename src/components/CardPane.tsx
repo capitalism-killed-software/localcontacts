@@ -54,7 +54,7 @@ export default function CardPane({
       body = <CardEdit contact={contact!} action={update!} />;
       footer = (
         <>
-          <Link href={viewHref} scroll={false} prefetch={false} className="btn">
+          <Link href={viewHref} scroll={false} prefetch={false} className="btn" data-discard>
             Cancel
           </Link>
           <button type="submit" form={CARD_FORM_ID} className="btn btn-done">
@@ -68,7 +68,7 @@ export default function CardPane({
       body = <CardEdit action={create} />;
       footer = (
         <>
-          <Link href={listHref} scroll={false} prefetch={false} className="btn">
+          <Link href={listHref} scroll={false} prefetch={false} className="btn" data-discard>
             Cancel
           </Link>
           <button type="submit" form={CARD_FORM_ID} className="btn btn-done">

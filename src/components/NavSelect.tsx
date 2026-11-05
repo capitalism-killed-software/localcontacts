@@ -1,5 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { confirmLeave } from '@/lib/leave-guard';
 
 export type NavOption = { value: string; label: string; href: string };
 export type NavGroup = { label: string; options: NavOption[] };
@@ -30,7 +31,8 @@ export default function NavSelect({
       value={value}
       onChange={(e) => {
         const href = hrefs.get(e.target.value);
-        if (href) router.push(href, { scroll: false });
+        // The select is controlled, so a refused change snaps back to `value`.
+        if (href && confirmLeave()) router.push(href, { scroll: false });
       }}
     >
       {options.map((o) => (

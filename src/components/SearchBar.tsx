@@ -11,6 +11,16 @@ export default function SearchBar() {
   const [value, setValue] = useState(params.get('q') ?? '');
   const [, startTransition] = useTransition();
   const ref = useRef<HTMLInputElement>(null);
+  // The q this box last put in the address (or found there). When the address
+  // changes to anything else (Back, Forward), the box shows that instead.
+  const sent = useRef(params.get('q') ?? '');
+  const urlQ = params.get('q') ?? '';
+  useEffect(() => {
+    if (urlQ !== sent.current) {
+      sent.current = urlQ;
+      setValue(urlQ);
+    }
+  }, [urlQ]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -21,6 +31,7 @@ export default function SearchBar() {
       if (value.trim()) next.set('q', value);
       else next.delete('q');
       if (next.toString() === current.toString()) return;
+      sent.current = value.trim() ? value : '';
       const qs = next.toString();
       startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
     }, 150);
