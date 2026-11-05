@@ -42,6 +42,8 @@ home server you control. Its safety comes from not being reachable by anyone els
   or network.
 - CSV exports are written as they are. A contact whose name starts with `=` could be read as a
   formula by a spreadsheet; only open exports of data you trust in Excel.
+- An import is read into memory whole while it is checked: a file near the 100 MB limit can
+  briefly take a few GB of memory. Only the app's own import page can send one.
 
 ## Reporting a vulnerability
 

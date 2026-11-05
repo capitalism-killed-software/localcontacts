@@ -111,11 +111,30 @@ type-to-jump in the names list, host-name allowlist against DNS rebinding
 templates, Dependabot. A trial on a real 7,000-contact address book led to stricter phone
 matching and card ids in exports; both export formats now round-trip it exactly.
 
+### Black-box testing (2026-11-04)
+
+Three testers worked only from these docs, the running app and the command line, with made-up
+data: one in the browser, one against the HTTP surface, one feeding the importer and exporter
+crafted files. They found 62 issues (52 once duplicates were merged); every one was reproduced
+before it was fixed, and each fix has a test that failed first. The serious ones: `npm start`
+listened on every network address (now 127.0.0.1 unless `CONTACTS_LISTEN` says otherwise), two
+people with the same name were fused into one card, `merge:dupes` and `clean:names` could lose
+data, notes doubled on every export and re-import, and Windows-1252 files lost their accents.
+Also fixed: writes checked in one place and framing refused, exports that round-trip groups,
+industry and dates, more export quirks read or reported, search without case or accents and by
+phone digits, whole images only, and a dozen smaller things in the book and the command line.
+`CHANGELOG.md` lists them.
+
+Left as known limits: the importer keeps one name string, so a vCard's structured name (N) is not
+stored and exports derive it (company cards excepted); an import is held in memory while it is
+checked (`SECURITY.md`); industry groups are case-sensitive.
+
 ### Next
 
 - Hand testing on macOS, Windows and Linux with `docs/TESTING.md`, including the first run of
   `scripts/app/install-desktop.sh` on a Mac. Fix what it finds, each with a test.
-- Release 1.0.0: date the changelog, tag, publish the GitHub release, make the repository public.
+- Release 1.0.0: date the changelog, tag and publish the GitHub release (the repository went
+  public on 2026-11-04).
 - After 1.0: installers that bundle Node so people need not install it; more import formats if
   people ask (LDIF, Zoho); re-check the export guide against the vendors' pages every few months.
 
